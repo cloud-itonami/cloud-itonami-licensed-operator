@@ -19,9 +19,13 @@
          ["JPN" :sector/industrial-waste-collection]
          ["JPN" :sector/warehousing]
          ["JPN" :sector/food-manufacture]
-         ["JPN" :sector/medical-practice]]
-  :rules 11
-  :verification {:primary-source-read 5 :official-url-retrieved 4 :secondary-source-only 2}
+         ["JPN" :sector/medical-practice]
+         ["JPN" :sector/employment-placement]
+         ["JPN" :sector/real-estate-brokerage]
+         ["JPN" :sector/travel-agency]]
+  :rules 21
+  :verification {:primary-source-read 17 :official-url-retrieved 4 :secondary-source-only 0}
+  :statute-source "e-Gov 法令 API /api/1/articles（法令検索の Web ページは JS レンダリングで読めないが API は XML を返す）"
   :multi-gate ["JSIC 4721 冷蔵倉庫業は倉庫業法第3条の登録に加えて食品衛生法の営業届出が要る"]
   :note "未収載の (法域, 業種) は『規制が無い』ではなく『未調査』。gate は既定で拒否する。"}
  :itonami.blueprint/related

@@ -7,7 +7,7 @@
 StageGraph も台帳も持たない。何も申請せず、許認可も持たず、官庁にも接触しない。
 呼び出し側 actor の governor が結果を見て自分で HOLD/escalate/commit を決める。
 
-**45 tests / 276 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**48 tests / 406 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -37,10 +37,13 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
 |---|---|---|---|---|---|
 | legal-services | 弁護士資格 | **不可** | 1 | `:prohibited` | **`:admissible`** |
 | medical-practice | 医療機関の開設許可 | **不可** | 1 | `:prohibited` | `:conditional` |
-| second-hand-dealing | 古物商許可 | 可 | 1 | `:conditional` | `:unsettled` |
+| second-hand-dealing | 古物商許可 | 可 | 1 | `:conditional` | `:conditional` |
 | industrial-waste-collection | 産廃収集運搬業許可 | 可 | 1 | `:conditional` | `:conditional` |
 | food-manufacture | 食品衛生法 営業許可（32業種） | 可 | 1 | `:conditional` | `:conditional` |
-| warehousing | 倉庫業の登録 | 可 | **2** | `:conditional` | `:unsettled` |
+| warehousing | 倉庫業の登録 | 可 | **2** | `:conditional` | `:conditional` |
+| employment-placement | 有料職業紹介事業の許可 | 可 | 1 | `:conditional` | `:conditional` |
+| real-estate-brokerage | 宅地建物取引業の免許 | 可 | 1 | `:conditional` | `:conditional` |
+| travel-agency | 旅行業の登録 | 可 | 1 | `:conditional` | `:unsettled` |
 
 `:conditional` は「カタログが検証できない事実（許認可を実際に持っているか等）に
 かかっている」の意味で、運営者の宣誓（attestation）でのみ解錠する。`:unsettled`
@@ -120,25 +123,47 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **6件（法域×業種）・11ルール** — 一次読了5（弁護士法72条 / 法務省ガイドライン /
-東京都の食品衛生法 要許可32業種一覧 ×2 / 厚生省医務局長回答 医収第190号）、
-公式ページ取得4（警視庁 古物商許可手続き / 東京都環境局 産廃許可申請 /
-国交省 倉庫業法 / 東京都 食品衛生の窓）、二次情報のみ2（古物営業法3条・廃掃法14条の
-**条文原文が未取得**）。
+現在: **9件（法域×業種）・21ルール**。うち **17 が条文原文の読了**（`:primary-source-read`）、
+4 が公式ページの取得（`:official-url-retrieved`）で、**二次情報のみに依拠したルールは
+ゼロ**です。条文は e-Gov 法令 API（`/api/1/articles`）から取得しました — 法令検索の
+Web ページは JavaScript レンダリングで読めませんが、API は XML を直接返します。
 
 収録業種は cloud-itonami に実装済み actor が載っているところを優先しました:
-`food-manufacture` は isic-1071/1073/1074/1075/1020/562 が、`warehousing` は
-jsic-4721 が、`medical-practice` は isic-862/869 が該当します。
+`food-manufacture` は isic-1071/1073/1074/1075/1020/562、`warehousing` は jsic-4721、
+`medical-practice` は isic-862/869、`employment-placement` は isic-7810、
+`real-estate-brokerage` は isic-6820、`travel-agency` は isic-7911。
 
-日本の許認可業種は数百あり、ここにあるのは一次/公式まで確認できた6件にすぎません。
-各エントリは `:known-gaps` で何を確認していないかを名指ししています（倉庫業法・
-食品衛生法・医師法17条・医療法7条の**条文原文はいずれも未取得**で、
-現在は公式ページと通知に依拠しています）。
+日本の許認可業種は数百あり、これは9件にすぎません。各エントリは `:known-gaps` で
+何を確認していないかを名指ししています（多くは定義条文の周辺 — 例えば宅建業法2条の
+「宅地建物取引業」の定義は未取得で、媒介・代理の境界はそこで決まります）。
+
+### 条文を入れて動いた判定
+
+原文取得の前後で3件の verdict が変わりました。どれも定義条文が境界を決めていた
+ケースです。
+
+- **second-hand-dealing の defer**: `:unsettled` → `:conditional`。古物営業法3条は
+  2条2項の**1号・2号だけ**を許可対象にしており、3号（古物競りあつせん業）を含んで
+  いない。自社が売買・交換の当事者にならなければ3条は及ばない、と条文から読めます。
+- **warehousing の defer**: `:unsettled` → `:conditional`。倉庫業法2条2項が
+  「**寄託を受けた**物品の倉庫における保管を行う営業」と定義しているので、
+  寄託の当事者にならなければ登録義務の外に立ちます。
+- **industrial-waste-collection**: 14条1項に**但書**があり、
+  「事業者（自らその産業廃棄物を運搬する場合に限る。）」は許可が要りません。
+  ITAD にとってこれは決定的で、顧客の PC を引き取るなら排出事業者は顧客であって
+  自社ではないため但書に乗れない。kyoninka が保持する「廃棄物該当性」の論点は、
+  この但書のどちら側に立つかを決める問いそのものでした。`:licence/exemptions` に
+  data として持たせています。
+
+逆に **travel-agency の defer は `:unsettled` のまま**です。旅行業法3条は
+「旅行業**又は旅行業者代理業**を営もうとする者」を登録対象にしており、
+他社商品の代理販売まで捕捉する。他業種の「主体にならなければ規制外」という
+構図が通用しない唯一の収録業種で、2条の定義を取るまで開けません。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 45 tests / 276 assertions
+clojure -M:test   # 48 tests / 406 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

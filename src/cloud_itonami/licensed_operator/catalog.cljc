@@ -46,7 +46,13 @@
    :sector/food-manufacture
    "食品製造業 — 食品衛生法の要許可32業種（ISIC 1030/1071-1075/562 等）"
    :sector/medical-practice
-   "医業 — 医療機関の開設と診療（ISIC 862/869）"})
+   "医業 — 医療機関の開設と診療（ISIC 862/869）"
+   :sector/employment-placement
+   "有料職業紹介事業（ISIC 7810）"
+   :sector/real-estate-brokerage
+   "宅地建物取引業（ISIC 6820）"
+   :sector/travel-agency
+   "旅行業・旅行業者代理業（ISIC 7911）"})
 
 (def routes
   {:route/principal
@@ -178,16 +184,37 @@
            "古物営業法第13条第1項を挙げる。"
            "※『どの行為に許可が要るか』の範囲はこのページには記載が無い。")}
      {:rule/id "jpn.kobutsu-eigyo-ho-3"
-      :rule/title "古物営業法第3条（許可）"
-      :rule/url "https://www.keishicho.metro.tokyo.lg.jp/tetsuzuki/kobutsu/tetsuzuki/kyoka.html"
-      :rule/url-provenance :cited-by-official-site
-      :rule/verification :secondary-source-only
-      :rule/verification-note
-      (str "許可義務の根拠条文そのもの（法3条）の原文は未取得。警視庁ページが"
-           "挙げるのは施行規則1条の3第3項と法13条1項で、3条の逐語は確認できて"
-           "いない。制限的 verdict の根拠にのみ使用可。")
+      :rule/title "古物営業法 第3条（許可）"
+      :rule/instrument "古物営業法（昭和24年法律第108号）"
+      :rule/quote
+      (str "前条第二項第一号又は第二号に掲げる営業を営もうとする者は、"
+           "都道府県公安委員会（以下「公安委員会」という。）の許可を受けなければならない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十四年法律第百八号;article=3"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API（v1 articles）から条文本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"}
+     {:rule/id "jpn.kobutsu-eigyo-ho-2"
+      :rule/title "古物営業法 第2条（定義）"
+      :rule/instrument "古物営業法（昭和24年法律第108号）"
+      :rule/quote
+      (str "２ この法律において「古物営業」とは、次に掲げる営業をいう。"
+           "一 古物を売買し、若しくは交換し、又は委託を受けて売買し、若しくは交換する"
+           "営業であつて、古物を売却すること又は自己が売却した物品を当該売却の相手方から"
+           "買い受けることのみを行うもの以外のもの　"
+           "二 古物市場（古物商間の古物の売買又は交換のための市場をいう。）を経営する営業　"
+           "三 古物の売買をしようとする者のあつせんを競りの方法…により行う営業"
+           "（前号に掲げるものを除く。以下「古物競りあつせん業」という。）")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十四年法律第百八号;article=2"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。"
       :rule/retrieved-at "2026-07-26"
-      :rule/summary "古物商・古物市場主を営もうとする者は公安委員会の許可を受けなければならない。"}]
+      :rule/summary
+      (str "許可の対象は2条2項の1号（売買・交換・委託売買）と2号（古物市場の経営）のみ。"
+           "**3号の古物競りあつせん業は3条の許可対象から外れている**（3条が1号・2号だけを"
+           "挙げているため）。自社が1号・2号の営業の当事者にならなければ、"
+           "3条の許可義務は及ばない。")}]
 
     :route/principal
     {:verdict :conditional
@@ -198,18 +225,21 @@
           "取得前は名義人になれない。")}
 
     :route/defer
-    {:verdict :unsettled
-     :basis []
+    {:verdict :conditional
+     :basis ["jpn.kobutsu-eigyo-ho-2" "jpn.kobutsu-eigyo-ho-3"]
      :condition
-     (str "許可を持つ古物商を主体に立て、自社はシステム提供に徹する形が"
-          "『古物営業を営む』に当たらないかは未検証。古物営業法2条の"
-          "『古物営業』の定義と、法3条の『営もうとする者』の解釈を原文で"
-          "確認するまで、この経路を成立と判定しない。")
+     (str "自社が2条2項1号の営業（古物の売買・交換・委託を受けての売買交換）"
+          "および2号（古物市場の経営）の当事者にならないこと。3条の許可義務は"
+          "この2つにしか及ばない。許可を持つ古物商が売買の当事者となり、自社は"
+          "システム提供・物流手配に徹する形であれば3条の外に立つ。"
+          "ただし3号の古物競りあつせん業（競りの方法によるあつせん）に該当する"
+          "形態を採る場合、3条の許可対象外である代わりに別途の規律"
+          "（届出等、法21条の7 前後）が及ぶ — その条文は未取得。")
      :licensee-requirements
      #{:req/licence-verified :req/same-jurisdiction :req/scope-covers}}
 
     :known-gaps
-    ["古物営業法 第2条（定義）・第3条（許可）の条文原文が未取得"
+    ["古物競りあつせん業の届出義務（法21条の7 前後）の条文が未取得"
      "営業所の実体要件（サービスオフィスの適格性）は管轄署への要確認事項として kyoninka が保持"
      "標準処理期間が警視庁公式ページに記載なし（法定40日は未確認）"]}
 
@@ -224,6 +254,20 @@
      :licence/fee-jpy 81000
      :licence/obtainable-by-company? true
      :licence/kyoninka-procedure :sanpai-shuun-tokyo
+     :licence/valid-years {:min 5 :basis "廃掃法14条2項（五年を下らない期間ごとに更新）"}
+     :licence/exemptions
+     [{:exemption/id :own-waste-self-transport
+       :exemption/detail
+       (str "14条1項但書 —「事業者（自らその産業廃棄物を運搬する場合に限る。）…"
+            "については、この限りでない」。**自ら排出した産業廃棄物を自ら運搬する"
+            "排出事業者には許可が要らない。** ITAD にとってこれは決定的な分岐で、"
+            "顧客の PC を引き取るなら排出事業者は顧客であって自社ではないため"
+            "この但書に乗れない。買取（古物）スキームなら廃棄物ですらなくなる。"
+            "kyoninka が保持する『廃棄物該当性』の legal-question は、"
+            "この但書のどちら側に立つかを決める問いにほかならない。")}
+      {:exemption/id :moppara-recycling
+       :exemption/detail
+       "同但書 — 専ら再生利用の目的となる産業廃棄物のみの収集運搬を業として行う者も対象外。"}]
      :licence/note
      (str "法人でも取得できる。講習会修了証の提出が求められる。"
           "手続きの data は kotoba-lang/kyoninka の :sanpai-shuun-tokyo。")}
@@ -242,15 +286,24 @@
       (str "新規許可申請の手数料は産業廃棄物・特別管理産業廃棄物ともに 81,000 円。"
            "令和8年4月1日以降の予約日については講習会の修了証（写し）の提出が必要。")}
      {:rule/id "jpn.haikibutsu-ho-14"
-      :rule/title "廃棄物処理法 第14条第1項（産業廃棄物収集運搬業の許可）"
-      :rule/url "https://www.kankyo.metro.tokyo.lg.jp/resource/industrial_waste/on_processor/license_application"
-      :rule/url-provenance :cited-in-corpus
-      :rule/verification :secondary-source-only
-      :rule/verification-note
-      (str "条文原文は未取得。kyoninka の収録値および ADR-2607141620 由来。"
-           "制限的 verdict の根拠にのみ使用可。")
+      :rule/title "廃棄物処理法 第14条（産業廃棄物処理業）"
+      :rule/instrument "廃棄物の処理及び清掃に関する法律（昭和45年法律第137号）"
+      :rule/quote
+      (str "産業廃棄物…の収集又は運搬を業として行おうとする者は、当該業を行おうとする"
+           "区域（運搬のみを業として行う場合にあつては、産業廃棄物の積卸しを行う区域に"
+           "限る。）を管轄する都道府県知事の許可を受けなければならない。"
+           "ただし、事業者（自らその産業廃棄物を運搬する場合に限る。）、専ら再生利用の"
+           "目的となる産業廃棄物のみの収集又は運搬を業として行う者その他環境省令で"
+           "定める者については、この限りでない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和四十五年法律第百三十七号;article=14"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から14条全体を取得して読了。"
       :rule/retrieved-at "2026-07-26"
-      :rule/summary "産業廃棄物の収集又は運搬を業として行おうとする者は、都道府県知事の許可を受けなければならない。"}]
+      :rule/summary
+      (str "許可権者は業を行う区域を管轄する都道府県知事。**但書に3類型の適用除外**"
+           "（自ら運搬する排出事業者 / 専ら再生利用目的 / 環境省令で定める者）。"
+           "2項により五年を下らない政令期間ごとの更新を要し、更新しなければ失効する。")}]
 
     :route/principal
     {:verdict :conditional
@@ -274,9 +327,10 @@
        :req/not-expired :req/written-contract}}
 
     :known-gaps
-    ["廃棄物処理法 第14条・委託基準（第12条第5項〜、施行令第6条の2）の条文原文が未取得"
-     "標準処理期間・有効期間が東京都公式ページに記載なし（第三者情報の約60日・5年は未確認）"
-     "廃棄物該当性（ITAD 宅配回収スキーム）が未決 — 行政書士確認待ち"]}
+    ["委託基準（第12条第5項〜、施行令第6条の2）の条文原文が未取得"
+     "標準処理期間が東京都公式ページに記載なし（第三者情報の約60日は未確認）"
+     "14条2項の「政令で定める期間」の具体値が未確認（五年を下らない、とのみ確認）"
+     "廃棄物該当性（ITAD 宅配回収スキーム）が未決 — 14条1項但書のどちら側に立つかを決める問い"]}
 
    ;; -----------------------------------------------------------------------
    ["JPN" :sector/warehousing]
@@ -332,33 +386,62 @@
       :rule/summary
       (str "令和3年6月1日以降、要許可32業種／要届出業種／届出不要業種の3区分。"
            "届出不要業種の2に『食品又は添加物の貯蔵又は運搬のみをする営業』が挙がるが、"
-           "**冷凍又は冷蔵倉庫業は届出が必要な業種として明示的に除外**されている。")}]
+           "**冷凍又は冷蔵倉庫業は届出が必要な業種として明示的に除外**されている。")}
+     {:rule/id "jpn.soukogyo-ho-3"
+      :rule/title "倉庫業法 第3条（登録）"
+      :rule/instrument "倉庫業法（昭和31年法律第121号）"
+      :rule/quote "倉庫業を営もうとする者は、国土交通大臣の行う登録を受けなければならない。"
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和三十一年法律第百二十一号;article=3"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"}
+     {:rule/id "jpn.soukogyo-ho-2"
+      :rule/title "倉庫業法 第2条（定義）"
+      :rule/instrument "倉庫業法（昭和31年法律第121号）"
+      :rule/quote
+      (str "２ この法律で「倉庫業」とは、寄託を受けた物品の倉庫における保管"
+           "（保護預りその他の他の営業に付随して行われる保管又は携帯品の一時預り"
+           "その他の比較的短期間に限り行われる保管であつて…第六条第一項第四号の"
+           "基準に適合する施設又は設備を有する倉庫において行うことが必要でないと"
+           "認められるものとして政令で定めるものを除く。）を行う営業をいう。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和三十一年法律第百二十一号;article=2"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "倉庫業の構成要素は『**寄託を受けた**物品の倉庫における保管を行う営業』。"
+           "寄託を受ける当事者にならなければ3条の登録義務は及ばない。"
+           "他の営業に付随する保管・短期の一時預りは政令で除外されうる。")}]
 
     :route/principal
     {:verdict :conditional
-     :basis ["jpn.mlit-soukogyo" "jpn.tokyo-shokuhin-kyoka-todokede"]
+     :basis ["jpn.soukogyo-ho-3" "jpn.mlit-soukogyo" "jpn.tokyo-shokuhin-kyoka-todokede"]
      :condition
      (str "倉庫業法第3条の登録を受けていること（施設基準の充足と倉庫管理主任者の"
           "選任を含む）。冷蔵倉庫であれば加えて食品衛生法の営業届出を済ませて"
           "いること — :additional-gates を参照。片方だけでは足りない。")}
 
     :route/defer
-    {:verdict :unsettled
-     :basis []
+    {:verdict :conditional
+     :basis ["jpn.soukogyo-ho-2" "jpn.soukogyo-ho-3"]
      :condition
-     (str "登録倉庫業者に寄託し自社は在庫調整・受発注の ops 層に徹する形が"
-          "『倉庫業を営む』に当たらないかは未検証。倉庫業法2条の『倉庫業』の定義と"
-          "3条の『営もうとする者』の解釈を原文で確認するまで、この経路を成立と"
-          "判定しない。")
+     (str "自社が寄託を受ける当事者にならないこと。2条2項の『倉庫業』は"
+          "**寄託を受けた**物品の保管を行う営業と定義されているため、"
+          "登録倉庫業者が寄託の相手方となり、自社は在庫調整・受発注・"
+          "温度記録の ops 層に徹する形であれば3条の登録義務は及ばない。"
+          "冷蔵倉庫を扱う場合、寄託を受けなくとも食品衛生法側の届出の要否は"
+          "別途判断が要る（:additional-gates 参照）。")
      :licensee-requirements
      #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
        :req/written-contract}}
 
     :known-gaps
-    ["倉庫業法 第2条（定義）・第3条（登録）の条文原文が未取得"
-     "無登録営業の罰則（1年以下の懲役 or 100万円以下の罰金とされる）が公式未確認"
+    ["無登録営業の罰則（1年以下の懲役 or 100万円以下の罰金とされる）が公式未確認"
      "登録の標準処理期間（大臣権限3か月・地方運輸局長権限2か月とされる）が公式未確認"
-     "倉庫業法第三条の登録の基準等に関する告示（国交省告示第43号）が未取得"]}
+     "倉庫業法第三条の登録の基準等に関する告示（国交省告示第43号）が未取得"
+     "2条2項が除外する『政令で定めるもの』の具体的範囲が未確認"]}
 
    ;; -----------------------------------------------------------------------
    ["JPN" :sector/food-manufacture]
@@ -403,11 +486,46 @@
       :rule/verification-note
       "都の公式ページを取得して読了。申請先が「営業所を所管する保健所」であることと施行日を確認。"
       :rule/retrieved-at "2026-07-26"
-      :rule/summary "令和3年6月1日から新たな営業許可制度・営業届出制度が開始。申請先は営業所を所管する保健所。"}]
+      :rule/summary "令和3年6月1日から新たな営業許可制度・営業届出制度が開始。申請先は営業所を所管する保健所。"}
+     {:rule/id "jpn.shokuhin-eisei-ho-55"
+      :rule/title "食品衛生法 第55条（営業の許可）"
+      :rule/instrument "食品衛生法（昭和22年法律第233号）"
+      :rule/quote
+      (str "前条に規定する営業を営もうとする者は、厚生労働省令で定めるところにより、"
+           "都道府県知事の許可を受けなければならない。……"
+           "都道府県知事は、第一項の許可に五年を下らない有効期間その他の必要な条件を"
+           "付けることができる。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十二年法律第二百三十三号;article=55"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "許可権者は都道府県知事（政令市等では市長等）。施設が54条の基準に合えば"
+           "許可しなければならない羈束処分だが、法違反での処罰から2年未満・"
+           "許可取消しから2年未満・**その役員にそれらの該当者がいる法人**は"
+           "許可を与えないことができる（欠格）。有効期間は五年を下らない範囲で付される。")}
+     {:rule/id "jpn.shokuhin-eisei-ho-57"
+      :rule/title "食品衛生法 第57条（営業の届出）"
+      :rule/instrument "食品衛生法（昭和22年法律第233号）"
+      :rule/quote
+      (str "営業（第五十四条に規定する営業、公衆衛生に与える影響が少ない営業で政令で"
+           "定めるもの及び食鳥処理の事業を除く。）を営もうとする者は、厚生労働省令で"
+           "定めるところにより、あらかじめ、その営業所の名称及び所在地その他厚生労働省令"
+           "で定める事項を都道府県知事に届け出なければならない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十二年法律第二百三十三号;article=57"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**届出は許可業種の残余ではなく独立の義務**。要許可業種と政令で定める"
+           "低リスク営業・食鳥処理を除く『営業』はすべて事前届出の対象になる —"
+           "製造を委託して自社は販売だけ、という形でも届出は免れない。")}]
 
     :route/principal
     {:verdict :conditional
-     :basis ["jpn.tokyo-shokuhin-kyoka-list" "jpn.tokyo-shokuhin-window"]
+     :basis ["jpn.shokuhin-eisei-ho-55" "jpn.tokyo-shokuhin-kyoka-list" "jpn.tokyo-shokuhin-window"]
      :condition
      (str "該当する要許可業種について保健所の営業許可を受けていること。法人で取得"
           "できる。営業施設の基準・食品衛生責任者の設置・HACCP に沿った衛生管理が伴い、"
@@ -415,21 +533,23 @@
 
     :route/defer
     {:verdict :conditional
-     :basis ["jpn.tokyo-shokuhin-kyoka-list"]
+     :basis ["jpn.shokuhin-eisei-ho-57" "jpn.tokyo-shokuhin-kyoka-list"]
      :condition
-     (str "製造は許可を持つ製造者が行い（受託製造 / OEM）、自社は食品衛生法上"
-          "届出で足りる範囲（食品販売業等）にとどまること。**自社側も届出は要る** —"
-          "要許可業種でも届出不要業種でもない営業は届出の対象。どこまでが『製造』か"
-          "は業態依存で、31 食品の小分け業が独立した許可業種として立っていることに"
-          "示されるとおり、小分け・包装だけでも許可側に落ちうる。")
+     (str "製造は許可を持つ製造者が行い（受託製造 / OEM）、自社は要許可32業種に"
+          "当たらない範囲にとどまること。**ただし57条により自社側も事前届出が要る** —"
+          "届出は許可業種の残余ではなく独立の義務で、要許可業種と政令で定める"
+          "低リスク営業を除く『営業』はすべて対象。どこまでが『製造』かは業態依存で、"
+          "31 食品の小分け業が独立した許可業種として立っていることに示されるとおり、"
+          "小分け・包装だけでも許可側に落ちうる。")
      :licensee-requirements
      #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
        :req/written-contract}}
 
     :known-gaps
-    ["食品衛生法の条文原文（営業許可・届出の根拠条項）が未取得"
-     "施設基準（政令・条例）が未取得"
-     "許可の有効期間・更新間隔・手数料額が未確認（自治体差がある）"
+    ["第54条（施設基準）の条文原文が未取得 — 55条が参照している基準そのもの"
+     "施設基準の政令・条例が未取得"
+     "許可手数料額が未確認（自治体差がある）"
+     "57条が除外する『公衆衛生に与える影響が少ない営業で政令で定めるもの』の範囲が未確認"
      "酒税法の製造免許は未収載 — 21 酒類製造業を扱うなら別途調査が要る"]}
 
    ;; -----------------------------------------------------------------------
@@ -459,31 +579,234 @@
            "高知県知事照会（昭和27年5月30日 27医第309号）に対する回答で、"
            "照会側が医療法第7条第2項及び同法第54条を根拠に「医業は医療法上"
            "営利事業ではない」と述べている点も同じ文書上で確認した。")
-      :rule/retrieved-at "2026-07-26"}]
+      :rule/retrieved-at "2026-07-26"}
+     {:rule/id "jpn.ishi-ho-17"
+      :rule/title "医師法 第17条"
+      :rule/instrument "医師法（昭和23年法律第201号）"
+      :rule/quote "医師でなければ、医業をなしてはならない。"
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十三年法律第二百一号;article=17"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。全文が一文。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "医業の主体は自然人たる医師に限られる。法人は—医療法人であっても—"
+           "医業そのものをなす主体にはなれず、医師を置いて医療機関を開設する形しかない。")}
+     {:rule/id "jpn.iryo-ho-7"
+      :rule/title "医療法 第7条（開設の許可）"
+      :rule/instrument "医療法（昭和23年法律第205号）"
+      :rule/quote
+      (str "病院を開設しようとするとき、…臨床研修等修了医師…及び…臨床研修等修了"
+           "歯科医師…でない者が診療所を開設しようとするとき、又は助産師…でない者が"
+           "助産所を開設しようとするときは、開設地の都道府県知事…の許可を"
+           "受けなければならない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十三年法律第二百五号;article=7"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から7条全体を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "病院は誰が開設する場合でも許可が要る。診療所は臨床研修等修了医師"
+           "本人が開設する場合を除き許可が要る — つまり**法人が診療所を開設する"
+           "には常に7条の許可が要る**。営利法人がその許可を得られないことは"
+           "医収第190号の解釈による。")}]
 
     :route/principal
     {:verdict :prohibited
-     :basis ["jpn.mhlw-1952-iyu-190"]
+     :basis ["jpn.ishi-ho-17" "jpn.mhlw-1952-iyu-190" "jpn.iryo-ho-7"]
      :condition
      (str "営利を目的として医業を営むことは許されない。株式会社が開設者となる"
           "経路は無い。")}
 
     :route/defer
     {:verdict :conditional
-     :basis ["jpn.mhlw-1952-iyu-190"]
+     :basis ["jpn.ishi-ho-17" "jpn.mhlw-1952-iyu-190"]
      :condition
-     (str "医療法人・医師個人等が開設者となり、自社は医行為に当たらない支援"
-          "（設備・システム・事務受託）に徹すること。ただし、いわゆる MS 法人を"
-          "介した実質的支配の規律や、医療法人への経営関与の限界を条文・通知で"
-          "未検証。医行為の範囲（医師法17条）も原文未取得。運営者の宣誓を要する。")
+     (str "医療法人・医師個人等が開設者となり、自社は**医業に当たらない支援**"
+          "（設備・システム・事務受託）に徹すること。医師法17条は医業の主体を"
+          "医師に限るので、自社の関与が『医業をなす』側に一歩でも入れば成立しない。"
+          "いわゆる MS 法人を介した実質的支配の規律や医療法人への経営関与の限界は"
+          "条文・通知で未検証のため、運営者の宣誓を要する。")
      :licensee-requirements
      #{:req/licence-verified :req/same-jurisdiction :req/personally-decided}}
 
     :known-gaps
-    ["医師法第17条（医業の独占）の条文原文が未取得"
-     "医療法第7条・第54条の条文原文が未取得（上記通知が引用しているのみ）"
+    ["「医業」の外延（どこからが医行為か）の判断基準・通知が未収載"
+     "医療法第54条（剰余金配当の禁止）の条文原文が未取得"
      "MS 法人（メディカルサービス法人）に関する規律・通知が未収載"
-     "昭和27年の回答が現行運用でどこまで維持されているかの後続通知が未確認"]}})
+     "昭和27年の回答が現行運用でどこまで維持されているかの後続通知が未確認"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/employment-placement]
+   {:jurisdiction "JPN"
+    :sector :sector/employment-placement
+    :licence
+    {:licence/name "有料職業紹介事業の許可"
+     :licence/law "職業安定法 第30条"
+     :licence/authority "厚生労働大臣"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "法人で取得できる。申請書に役員全員の氏名・住所と、事業所ごとに選任する"
+          "職業紹介責任者の氏名・住所を記載し、事業所ごとの事業計画書を添付する"
+          "（30条2項・3項）。資産要件は厚生労働省令側にあり未取得。")}
+    :rules
+    [{:rule/id "jpn.shokugyo-anteiho-30"
+      :rule/title "職業安定法 第30条（有料職業紹介事業の許可）"
+      :rule/instrument "職業安定法（昭和22年法律第141号）"
+      :rule/quote
+      (str "有料の職業紹介事業を行おうとする者は、厚生労働大臣の許可を"
+           "受けなければならない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十二年法律第百四十一号;article=30"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から30条全体を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "許可権者は厚生労働大臣。申請には法人の役員全員の氏名住所、事業所名称"
+           "所在地、32条の14により選任する職業紹介責任者の氏名住所の記載と、"
+           "事業所ごとの事業計画書（求職者の見込数等を記載）の添付を要する。"
+           "**「有料の」職業紹介**が許可の対象であり、無料職業紹介は別条の規律。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.shokugyo-anteiho-30"]
+     :condition
+     (str "有料職業紹介事業の許可を得ていること。法人で取得でき、"
+          "cloud-itonami-isic-7810（employment agency actor）が載る業種。"
+          "職業紹介責任者の選任が要る。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["jpn.shokugyo-anteiho-30"]
+     :condition
+     (str "許可を持つ紹介事業者が紹介の主体となり、自社は候補者管理・"
+          "スケジューリング等の ops 層に徹すること。30条は『有料の職業紹介事業を"
+          "行おうとする者』を捕捉するので、自社が紹介行為の当事者にならず"
+          "手数料も受け取らない構造であることが前提。"
+          "『職業紹介』の定義（法4条）は未取得のため境界は要一次確認。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/personally-decided
+       :req/written-contract}}
+
+    :known-gaps
+    ["職業安定法 第4条（職業紹介の定義）の条文原文が未取得 — 境界がこれで決まる"
+     "許可基準（資産要件・事業所要件）は厚生労働省令側にあり未取得"
+     "手数料規制（第32条の3）が未収載"
+     "労働者派遣（isic-7820）は別法（労働者派遣法）で未収載"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/real-estate-brokerage]
+   {:jurisdiction "JPN"
+    :sector :sector/real-estate-brokerage
+    :licence
+    {:licence/name "宅地建物取引業の免許"
+     :licence/law "宅地建物取引業法 第3条"
+     :licence/authority "国土交通大臣（2以上の都道府県に事務所）／都道府県知事（1都道府県のみ）"
+     :licence/obtainable-by-company? true
+     :licence/valid-years {:exact 5 :basis "宅建業法3条2項（免許の有効期間は五年）"}
+     :licence/note
+     (str "法人で取得できる。事務所の分布で免許権者が変わる。更新申請中に"
+          "有効期間が満了しても処分がされるまで従前の免許が効力を持つ（3条4項）。")}
+    :rules
+    [{:rule/id "jpn.takken-ho-3"
+      :rule/title "宅地建物取引業法 第3条（免許）"
+      :rule/instrument "宅地建物取引業法（昭和27年法律第176号）"
+      :rule/quote
+      (str "宅地建物取引業を営もうとする者は、二以上の都道府県の区域内に事務所…を"
+           "設置してその事業を営もうとする場合にあつては国土交通大臣の、一の都道府県の"
+           "区域内にのみ事務所を設置してその事業を営もうとする場合にあつては当該事務所の"
+           "所在地を管轄する都道府県知事の免許を受けなければならない。"
+           "２ 前項の免許の有効期間は、五年とする。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十七年法律第百七十六号;article=3"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から3条全体（6項まで）を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "免許権者は事務所の分布で決まる。有効期間5年で更新制。更新申請中に"
+           "満了しても処分までは従前の免許が有効（4項）。大臣免許は登録免許税、"
+           "更新は手数料を要する（6項）。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.takken-ho-3"]
+     :condition
+     (str "宅地建物取引業の免許を受けていること。法人で取得でき、"
+          "cloud-itonami-isic-6820（real estate actor）が載る業種。"
+          "宅地建物取引士の設置義務・営業保証金または保証協会加入は"
+          "別条の規律で未取得。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["jpn.takken-ho-3"]
+     :condition
+     (str "免許を持つ宅建業者が取引の当事者・媒介者となり、自社は物件情報の"
+          "整理や内見調整等の ops 層に徹すること。3条は『宅地建物取引業を営もうと"
+          "する者』を捕捉するので、自社が売買・交換・媒介・代理の当事者に"
+          "ならないことが前提。『宅地建物取引業』の定義（法2条2号）は未取得のため"
+          "境界は要一次確認。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/not-expired
+       :req/written-contract}}
+
+    :known-gaps
+    ["宅建業法 第2条（定義）の条文原文が未取得 — 媒介・代理の境界がこれで決まる"
+     "宅地建物取引士の設置義務（第31条の3）が未収載"
+     "営業保証金・弁済業務保証金分担金（第25条・第64条の9）が未収載"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/travel-agency]
+   {:jurisdiction "JPN"
+    :sector :sector/travel-agency
+    :licence
+    {:licence/name "旅行業の登録"
+     :licence/law "旅行業法 第3条"
+     :licence/authority "観光庁長官（第3種・地域限定は都道府県知事に委任される場合がある）"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "法人で取得できる。3条は旅行業と旅行業者代理業の双方を登録の対象とする。"
+          "種別ごとの営業保証金・基準資産額は別条・省令側にあり未取得。")}
+    :rules
+    [{:rule/id "jpn.ryokogyo-ho-3"
+      :rule/title "旅行業法 第3条（登録）"
+      :rule/instrument "旅行業法（昭和27年法律第239号）"
+      :rule/quote
+      (str "旅行業又は旅行業者代理業を営もうとする者は、観光庁長官の行う登録を"
+           "受けなければならない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十七年法律第二百三十九号;article=3"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から条文本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**旅行業だけでなく旅行業者代理業も登録の対象**。"
+           "他社の旅行商品を代理販売する形でも登録を免れない点が、"
+           "他業種の『主体にならなければ規制外』という構図と異なる。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.ryokogyo-ho-3"]
+     :condition
+     (str "旅行業の登録を受けていること。法人で取得でき、"
+          "cloud-itonami-isic-7911（travel agency actor）が載る業種。")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis ["jpn.ryokogyo-ho-3"]
+     :condition
+     (str "**この業種では委譲の逃げ道が狭い。** 3条が旅行業者代理業まで登録対象に"
+          "しているため、登録業者の商品を代理して売る形も登録を要する。"
+          "自社が『旅行業』にも『旅行業者代理業』にも当たらない ops 層に"
+          "とどまれるかは、法2条の定義と旅行サービス手配業（法2条8項系）の"
+          "規律を原文で確認するまで判定しない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["旅行業法 第2条（定義）の条文原文が未取得 — 旅行業・代理業・手配業の境界"
+     "旅行業者代理業と旅行サービス手配業の区別が未整理"
+     "種別（第1種〜第3種・地域限定）ごとの営業保証金・基準資産額が未取得"
+     "登録権者の委任関係（都道府県知事への委任）が未確認"]}})
 
 ;; ---------------------------------------------------------------------------
 ;; Accessors

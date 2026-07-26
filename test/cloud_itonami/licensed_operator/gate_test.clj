@@ -37,21 +37,37 @@
         ":conditional は宣誓で解錠できる")
     (is (false? (gate/open-with? "JPN" :sector/legal-services :route/principal att))
         ":prohibited は宣誓で解錠できない")
-    (is (false? (gate/open-with? "JPN" :sector/second-hand-dealing :route/defer att))
+    (is (false? (gate/open-with? "JPN" :sector/travel-agency :route/defer att))
         ":unsettled は宣誓で解錠できない")))
 
 (deftest secondary-only-permissions-are-downgraded
-  (with-redefs [cat/catalog
-                (assoc-in cat/catalog
-                          [["JPN" :sector/second-hand-dealing] :route/defer]
-                          {:verdict :admissible
-                           :basis ["jpn.kobutsu-eigyo-ho-3"] ; secondary-source-only
-                           :condition "捏造された許可"
-                           :licensee-requirements #{:req/licence-verified}})]
-    (let [v (gate/verdict-for "JPN" :sector/second-hand-dealing :route/defer)]
-      (is (= :unsettled (:verdict v)))
-      (is (= :admissible (:downgraded-from v))))
-    (is (false? (gate/open? "JPN" :sector/second-hand-dealing :route/defer)))))
+  (testing "カタログに現在 secondary-only ルールが無くても、降格機構自体は生きている"
+    (with-redefs [cat/catalog
+                  (-> cat/catalog
+                      (update-in [["JPN" :sector/second-hand-dealing] :rules]
+                                 conj {:rule/id "synthetic.hearsay"
+                                       :rule/title "伝聞のみのルール"
+                                       :rule/url "https://example.invalid/hearsay"
+                                       :rule/verification :secondary-source-only
+                                       :rule/verification-note "テスト用の合成ルール"
+                                       :rule/retrieved-at "2026-07-26"})
+                      (assoc-in [["JPN" :sector/second-hand-dealing] :route/defer]
+                                {:verdict :admissible
+                                 :basis ["synthetic.hearsay"]
+                                 :condition "捏造された許可"
+                                 :licensee-requirements #{:req/licence-verified}}))]
+      (let [v (gate/verdict-for "JPN" :sector/second-hand-dealing :route/defer)]
+        (is (= :unsettled (:verdict v)))
+        (is (= :admissible (:downgraded-from v))))
+      (is (false? (gate/open? "JPN" :sector/second-hand-dealing :route/defer))))))
+
+(deftest the-catalog-currently-rests-entirely-on-read-sources
+  (testing "e-Gov 法令 API で条文原文を入れた結果、二次情報のみのルールは残っていない"
+    (let [rs (for [[j s] (cat/keys-covered) r (cat/rules j s)] r)]
+      (is (seq rs))
+      (is (every? cat/verified-rule? rs)
+          (str "未検証出典に依拠したままのルール: "
+               (pr-str (map :rule/id (remove cat/verified-rule? rs))))))))
 
 (deftest plan-prefers-principal-when-the-licence-is-held
   (testing "自社が名義人ならその経路を採る — 委譲を裏口として先に試させない"
@@ -162,10 +178,8 @@
                        :licence-held? true :attestations #{:route/principal}})]
     (is (= :principal (:route ok)))))
 
-(deftest warehousing-deferral-stays-shut-until-researched
-  (testing "寄託して ops 層に徹する形は未検証なので、宣誓でも開かない"
-    (is (false? (gate/open-with? "JPN" :sector/warehousing :route/defer
-                                 #{:route/defer})))
+(deftest warehousing-deferral-opens-on-the-statutory-definition
+  (testing "倉庫業法2条2項が『寄託を受けた』物品の保管と定義しているので、寄託の当事者にならなければ登録義務は及ばない"
     (let [p (gate/plan {:jurisdiction "JPN" :sector :sector/warehousing
                         :licence-held? false :attestations #{:route/defer}
                         :holder {:holder/id "W-1" :holder/licence-jurisdiction "JPN"
@@ -173,9 +187,39 @@
                                  :holder/licence-scope #{:cold-storage}}
                         :matter {:matter/jurisdiction "JPN" :matter/act :cold-storage
                                  :matter/written-contract-ref "CT-1"}})]
-      (is (= :blocked (:route p)))
-      (is (= :obtain-licence (get-in p [:next :action]))
-          "登録は法人で取れるので、未検証の委譲より先に取得を指す"))))
+      (is (= :defer (:route p)))
+      (is (some #(= "jpn.soukogyo-ho-2" (:rule/id %)) (:citations p))
+          "定義条文が根拠として出ること"))
+    (testing "書面契約の記録が無ければ落ちる"
+      (let [p (gate/plan {:jurisdiction "JPN" :sector :sector/warehousing
+                          :attestations #{:route/defer}
+                          :holder {:holder/id "W-1" :holder/licence-jurisdiction "JPN"
+                                   :holder/licence-verified? true
+                                   :holder/licence-scope #{:cold-storage}}
+                          :matter {:matter/jurisdiction "JPN" :matter/act :cold-storage}})]
+        (is (= :blocked (:route p)))
+        (is (contains? (set (map :rule (:blockers p))) :req/written-contract))))))
+
+(deftest travel-agency-has-no-easy-deferral
+  (testing "旅行業法3条は旅行業者代理業まで登録対象にしているので、委譲の逃げ道が狭い"
+    (is (= :unsettled (:verdict (gate/verdict-for "JPN" :sector/travel-agency :route/defer))))
+    (is (false? (gate/open-with? "JPN" :sector/travel-agency :route/defer #{:route/defer}))
+        "宣誓では解錠できない")
+    (let [r (cat/rule "JPN" :sector/travel-agency "jpn.ryokogyo-ho-3")]
+      (is (re-find #"旅行業者代理業" (:rule/quote r))))))
+
+(deftest waste-collection-exposes-the-self-transport-exemption
+  (testing "廃掃法14条1項但書 — 自ら排出した産廃を自ら運ぶ排出事業者には許可が要らない"
+    (let [l (gate/licence "JPN" :sector/industrial-waste-collection)
+          ex (:licence/exemptions l)]
+      (is (= 2 (count ex)))
+      (is (contains? (set (map :exemption/id ex)) :own-waste-self-transport))
+      (is (re-find #"排出事業者は顧客であって自社ではない"
+                   (:exemption/detail (first (filter #(= :own-waste-self-transport (:exemption/id %)) ex))))
+          "ITAD にとってどちら側に立つかが分かれる点が書かれていること"))
+    (let [r (cat/rule "JPN" :sector/industrial-waste-collection "jpn.haikibutsu-ho-14")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"自らその産業廃棄物を運搬する場合に限る" (:rule/quote r))))))
 
 (deftest summary-is-consistent-with-verdicts
   (let [s (gate/summary)]
