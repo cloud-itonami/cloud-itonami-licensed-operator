@@ -7,7 +7,7 @@
 StageGraph も台帳も持たない。何も申請せず、許認可も持たず、官庁にも接触しない。
 呼び出し側 actor の governor が結果を見て自分で HOLD/escalate/commit を決める。
 
-**35 tests / 159 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**45 tests / 276 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -33,16 +33,35 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
 
 (法域, 業種) ごとに2つの経路を持ち、それぞれに cited verdict が付く。
 
-| | JPN/legal-services | JPN/second-hand-dealing | JPN/industrial-waste-collection |
-|---|---|---|---|
-| 許認可 | 弁護士資格 | 古物商許可 | 産業廃棄物収集運搬業許可 |
-| 法人で取得可能か | **不可** | 可 | 可 |
-| `:route/principal`（自社が名義人） | `:prohibited` | `:conditional` | `:conditional` |
-| `:route/defer`（有資格者の ops 層） | **`:admissible`** | `:unsettled` | `:conditional` |
+| 業種 | 許認可 | 法人で取得可 | ゲート数 | principal | defer |
+|---|---|---|---|---|---|
+| legal-services | 弁護士資格 | **不可** | 1 | `:prohibited` | **`:admissible`** |
+| medical-practice | 医療機関の開設許可 | **不可** | 1 | `:prohibited` | `:conditional` |
+| second-hand-dealing | 古物商許可 | 可 | 1 | `:conditional` | `:unsettled` |
+| industrial-waste-collection | 産廃収集運搬業許可 | 可 | 1 | `:conditional` | `:conditional` |
+| food-manufacture | 食品衛生法 営業許可（32業種） | 可 | 1 | `:conditional` | `:conditional` |
+| warehousing | 倉庫業の登録 | 可 | **2** | `:conditional` | `:unsettled` |
 
 `:conditional` は「カタログが検証できない事実（許認可を実際に持っているか等）に
 かかっている」の意味で、運営者の宣誓（attestation）でのみ解錠する。`:unsettled`
 は未調査で、**宣誓では解錠できない**。
+
+### 許認可は1つとは限らない
+
+`warehousing` のゲート数が 2 なのは、**JSIC 4721 冷蔵倉庫業が倉庫業法第3条の
+登録（国交省）だけでは営業できない**からです。東京都の公式資料は「届出が不要な
+業種」として『食品又は添加物の貯蔵又は運搬のみをする営業』を挙げつつ、
+**冷凍又は冷蔵倉庫業を明示的に除外**しており、保健所への食品衛生法の営業届出が
+別途要る。主たる許認可だけを見て「取れた＝営業できる」と読むと、確信を持って
+違法になります。`gate/all-gates` と `plan` の `:additional-gates` がこれを
+必ず返します。
+
+```clojure
+(gate/all-gates "JPN" :sector/warehousing)
+;; => [{:licence/name "倉庫業の登録" :licence/law "倉庫業法 第3条" …}
+;;     {:licence/name "食品衛生法の営業届出（冷凍又は冷蔵倉庫業）"
+;;      :licence/applies-when :refrigerated …}]
+```
 
 ## 委譲はカタログが開いただけでは成立しない
 
@@ -101,17 +120,25 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **3件（法域×業種）・6ルール** — 一次読了2（弁護士法72条 / 法務省ガイドライン）、
-公式ページ取得2（警視庁 古物商許可手続き / 東京都環境局 産廃許可申請）、
-二次情報のみ2（古物営業法3条・廃掃法14条の**条文原文が未取得**）。
+現在: **6件（法域×業種）・11ルール** — 一次読了5（弁護士法72条 / 法務省ガイドライン /
+東京都の食品衛生法 要許可32業種一覧 ×2 / 厚生省医務局長回答 医収第190号）、
+公式ページ取得4（警視庁 古物商許可手続き / 東京都環境局 産廃許可申請 /
+国交省 倉庫業法 / 東京都 食品衛生の窓）、二次情報のみ2（古物営業法3条・廃掃法14条の
+**条文原文が未取得**）。
 
-日本の許認可業種は数百あり、ここにあるのは一次/公式まで確認できた3件にすぎません。
-各エントリは `:known-gaps` で何を確認していないかを名指ししています。
+収録業種は cloud-itonami に実装済み actor が載っているところを優先しました:
+`food-manufacture` は isic-1071/1073/1074/1075/1020/562 が、`warehousing` は
+jsic-4721 が、`medical-practice` は isic-862/869 が該当します。
+
+日本の許認可業種は数百あり、ここにあるのは一次/公式まで確認できた6件にすぎません。
+各エントリは `:known-gaps` で何を確認していないかを名指ししています（倉庫業法・
+食品衛生法・医師法17条・医療法7条の**条文原文はいずれも未取得**で、
+現在は公式ページと通知に依拠しています）。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 35 tests / 159 assertions
+clojure -M:test   # 45 tests / 276 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

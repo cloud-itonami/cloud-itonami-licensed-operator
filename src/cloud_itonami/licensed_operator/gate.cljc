@@ -96,11 +96,24 @@
         (:basis-rules (verdict-for jid sector route))))
 
 (defn licence
-  "The licence facts for `[jid sector]`, including the
+  "The PRIMARY licence facts for `[jid sector]`, including the
   `:licence/kyoninka-procedure` id when the acquisition procedure is
-  modelled as data in `kotoba-lang/kyoninka`."
+  modelled as data in `kotoba-lang/kyoninka`.
+
+  Callers must not treat this as the whole regulatory picture — see
+  `all-gates`."
   [jid sector]
   (:licence (cat/entry jid sector)))
+
+(defn all-gates
+  "Every gate that must be satisfied to operate as principal — the
+  primary licence first, then any `:additional-gates`. A sector can
+  require more than one authorisation from more than one authority, and
+  clearing only the obvious one is a way to be confidently illegal:
+  JSIC 4721 refrigerated warehousing needs the 倉庫業法 registration
+  from MLIT *and* a 食品衛生法 notification to the public health centre."
+  [jid sector]
+  (vec (keep identity (cons (licence jid sector) (cat/additional-gates jid sector)))))
 
 (defn plan
   "The whole decision for one concrete situation. Returns
@@ -164,6 +177,8 @@
      :verdicts {:route/principal vp :route/defer vd}
      :blockers (if (= :blocked chosen) blockers [])
      :licence lic-facts
+     ;; 主たる許認可だけ見て『取れた＝営業できる』と読ませない。
+     :additional-gates (cat/additional-gates jurisdiction sector)
      :citations (citations jurisdiction sector
                            (case chosen :principal :route/principal :route/defer))
      :next (when (= :blocked chosen)

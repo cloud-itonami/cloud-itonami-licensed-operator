@@ -96,6 +96,49 @@
     (is (contains? (:rules-by-verification c) :official-url-retrieved))
     (is (seq (:known-gaps c)))))
 
+(deftest additional-gates-are-shaped-like-licences
+  (testing "副次ゲートも許認可と同じ形で持ち、法条と当局を名指しする"
+    (doseq [[jid sector] (cat/keys-covered)
+            g (cat/additional-gates jid sector)]
+      (is (seq (:licence/name g)))
+      (is (seq (:licence/law g)))
+      (is (seq (:licence/authority g)))
+      (is (contains? #{true false} (:licence/obtainable-by-company? g))))))
+
+(deftest refrigerated-warehousing-has-two-gates
+  (testing "冷蔵倉庫業は倉庫業法の登録だけでは営業できない — 食品衛生法の届出も要る"
+    (let [gs (cat/additional-gates "JPN" :sector/warehousing)]
+      (is (= 1 (count gs)))
+      (is (re-find #"食品衛生法" (:licence/name (first gs))))
+      (is (= :refrigerated (:licence/applies-when (first gs)))))
+    (is (= "倉庫業法 第3条"
+           (get-in (cat/entry "JPN" :sector/warehousing) [:licence :licence/law])))))
+
+(deftest medical-practice-cannot-be-held-by-a-company
+  (testing "営利法人は医業の名義人になれない — 委譲以外の経路が無い"
+    (let [e (cat/entry "JPN" :sector/medical-practice)]
+      (is (false? (get-in e [:licence :licence/obtainable-by-company?])))
+      (is (= :prohibited (get-in e [:route/principal :verdict])))
+      (is (= :conditional (get-in e [:route/defer :verdict])))
+      (let [r (cat/rule "JPN" :sector/medical-practice "jpn.mhlw-1952-iyu-190")]
+        (is (= :primary-source-read (:rule/verification r)))
+        (is (re-find #"営利を目的として営むことは許されない" (:rule/quote r)))))))
+
+(deftest food-manufacture-lists-the-32-permit-categories
+  (let [r (cat/rule "JPN" :sector/food-manufacture "jpn.tokyo-shokuhin-kyoka-list")]
+    (is (= :primary-source-read (:rule/verification r)))
+    (doseq [k ["菓子製造業" "麺類製造業" "そうざい製造業" "冷凍食品製造業"
+               "水産製品製造業" "食品の小分け業"]]
+      (is (re-find (re-pattern k) (:rule/summary r))
+          (str k " が32業種の記載に見当たらない")))))
+
+(deftest non-itad-sectors-now-outnumber-itad-ones
+  (testing "commons が ITAD 専用にならないこと — 実装済み actor が載る業種を収録する"
+    (let [itad #{:sector/second-hand-dealing :sector/industrial-waste-collection}
+          all (map second (cat/keys-covered))]
+      (is (> (count (remove itad all)) (count (filter itad all)))
+          (str "ITAD 以外の業種が過半でない: " (pr-str all))))))
+
 (deftest itad-sectors-link-to-their-kyoninka-procedures
   (testing "ITAD の2件は取得手続きが kyoninka に data として在ることを指す"
     (is (= :kobutsu-marunouchi

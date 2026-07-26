@@ -115,6 +115,68 @@
     (is (= :research-jurisdiction (get-in p [:next :action])))
     (is (nil? (:licence p)))))
 
+(deftest all-gates-surfaces-every-authorisation
+  (testing "主たる許認可だけ見て『取れた＝営業できる』と読ませない"
+    (let [gs (gate/all-gates "JPN" :sector/warehousing)]
+      (is (= 2 (count gs)) "冷蔵倉庫業は倉庫業法の登録と食品衛生法の届出の2つ")
+      (is (= "倉庫業の登録" (:licence/name (first gs))) "主たるゲートが先頭"))
+    (is (= 1 (count (gate/all-gates "JPN" :sector/legal-services)))
+        "副次ゲートが無い業種は主たるものだけ")
+    (is (empty? (gate/all-gates "JPN" :sector/pharmacy))
+        "未収載業種はゲートを一つも返さない")))
+
+(deftest plan-carries-additional-gates-so-a-caller-cannot-miss-them
+  (let [p (gate/plan {:jurisdiction "JPN" :sector :sector/warehousing
+                      :licence-held? true :attestations #{:route/principal}})]
+    (is (= :principal (:route p)))
+    (is (= 1 (count (:additional-gates p))))
+    (is (re-find #"食品衛生法" (:licence/name (first (:additional-gates p)))))))
+
+(deftest medical-practice-only-opens-through-a-licence-holder
+  (testing "営利法人は名義人になれないので、宣誓しても principal は開かない"
+    (is (false? (gate/open-with? "JPN" :sector/medical-practice :route/principal
+                                 #{:route/principal})))
+    (let [p (gate/plan {:jurisdiction "JPN" :sector :sector/medical-practice
+                        :licence-held? true :attestations #{:route/principal}})]
+      (is (= :blocked (:route p))
+          "licence-held? を立てても :prohibited は覆らない")
+      (is (contains? (set (map :rule (:blockers p))) :principal-prohibited)))
+    (testing "医療法人を立て、宣誓し、要件を満たせば defer が開く"
+      (let [p (gate/plan {:jurisdiction "JPN" :sector :sector/medical-practice
+                          :attestations #{:route/defer}
+                          :holder {:holder/id "MC-1" :holder/licence-jurisdiction "JPN"
+                                   :holder/licence-verified? true}
+                          :matter {:matter/jurisdiction "JPN"
+                                   :matter/personally-decided? true}})]
+        (is (= :defer (:route p)))
+        (is (some #(= "jpn.mhlw-1952-iyu-190" (:rule/id %)) (:citations p)))))))
+
+(deftest food-manufacture-opens-as-principal-only-with-the-permit
+  (let [blocked (gate/plan {:jurisdiction "JPN" :sector :sector/food-manufacture
+                            :licence-held? false})]
+    (is (= :blocked (:route blocked)))
+    (is (= :obtain-licence (get-in blocked [:next :action])))
+    (is (nil? (get-in blocked [:next :kyoninka-procedure]))
+        "食品衛生法の営業許可は kyoninka に手続き data がまだ無い"))
+  (let [ok (gate/plan {:jurisdiction "JPN" :sector :sector/food-manufacture
+                       :licence-held? true :attestations #{:route/principal}})]
+    (is (= :principal (:route ok)))))
+
+(deftest warehousing-deferral-stays-shut-until-researched
+  (testing "寄託して ops 層に徹する形は未検証なので、宣誓でも開かない"
+    (is (false? (gate/open-with? "JPN" :sector/warehousing :route/defer
+                                 #{:route/defer})))
+    (let [p (gate/plan {:jurisdiction "JPN" :sector :sector/warehousing
+                        :licence-held? false :attestations #{:route/defer}
+                        :holder {:holder/id "W-1" :holder/licence-jurisdiction "JPN"
+                                 :holder/licence-verified? true
+                                 :holder/licence-scope #{:cold-storage}}
+                        :matter {:matter/jurisdiction "JPN" :matter/act :cold-storage
+                                 :matter/written-contract-ref "CT-1"}})]
+      (is (= :blocked (:route p)))
+      (is (= :obtain-licence (get-in p [:next :action]))
+          "登録は法人で取れるので、未検証の委譲より先に取得を指す"))))
+
 (deftest summary-is-consistent-with-verdicts
   (let [s (gate/summary)]
     (is (= (set (cat/keys-covered)) (set (keys s))))

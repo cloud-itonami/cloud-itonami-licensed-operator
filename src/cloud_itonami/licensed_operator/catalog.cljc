@@ -40,7 +40,13 @@
    :sector/second-hand-dealing
    "古物営業 — 中古品の売買・交換を業として行うこと（ISIC 4774）"
    :sector/industrial-waste-collection
-   "産業廃棄物の収集運搬（ISIC 3811）"})
+   "産業廃棄物の収集運搬（ISIC 3811）"
+   :sector/warehousing
+   "倉庫業 — 寄託を受けた物品の倉庫における保管（JSIC 4721 冷蔵倉庫業を含む）"
+   :sector/food-manufacture
+   "食品製造業 — 食品衛生法の要許可32業種（ISIC 1030/1071-1075/562 等）"
+   :sector/medical-practice
+   "医業 — 医療機関の開設と診療（ISIC 862/869）"})
 
 (def routes
   {:route/principal
@@ -270,7 +276,214 @@
     :known-gaps
     ["廃棄物処理法 第14条・委託基準（第12条第5項〜、施行令第6条の2）の条文原文が未取得"
      "標準処理期間・有効期間が東京都公式ページに記載なし（第三者情報の約60日・5年は未確認）"
-     "廃棄物該当性（ITAD 宅配回収スキーム）が未決 — 行政書士確認待ち"]}})
+     "廃棄物該当性（ITAD 宅配回収スキーム）が未決 — 行政書士確認待ち"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/warehousing]
+   {:jurisdiction "JPN"
+    :sector :sector/warehousing
+    :licence
+    {:licence/name "倉庫業の登録"
+     :licence/law "倉庫業法 第3条"
+     :licence/authority "国土交通大臣（地方運輸局長に委任される場合がある）"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "登録制。倉庫施設が保管物品に応じた基準を満たすことと、倉庫ごとに"
+          "倉庫管理主任者を選任することが要件として国交省ページに明記されている。"
+          "冷蔵倉庫については標準冷蔵倉庫寄託約款・冷蔵施設明細書等の別書類がある。")}
+
+    ;; 冷蔵倉庫業は倉庫業法だけでは足りない。食品衛生法の営業届出も要る。
+    :additional-gates
+    [{:licence/name "食品衛生法の営業届出（冷凍又は冷蔵倉庫業）"
+      :licence/law "食品衛生法（令和3年6月1日施行の営業届出制度）"
+      :licence/authority "管轄の保健所"
+      :licence/obtainable-by-company? true
+      :licence/applies-when :refrigerated
+      :licence/note
+      (str "東京都の公式資料は「届出が不要な業種」として『食品又は添加物の貯蔵"
+           "又は運搬のみをする営業』を挙げつつ、**冷凍又は冷蔵倉庫業は届出が必要な"
+           "業種**と明示的に除外している。JSIC 4721（冷蔵倉庫業）はここに当たるため、"
+           "倉庫業法の登録とは別に保健所への届出が要る。届出には手数料も有効期間も"
+           "無いが、食品衛生責任者の設置と HACCP に沿った衛生管理が伴う。")}]
+
+    :rules
+    [{:rule/id "jpn.mlit-soukogyo"
+      :rule/title "倉庫業法（国土交通省 物流ページ）"
+      :rule/url "https://www.mlit.go.jp/seisakutokatsu/freight/butsuryu05100.html"
+      :rule/url-provenance :official-government-site
+      :rule/verification :official-url-retrieved
+      :rule/verification-note
+      (str "国交省の倉庫業法ページを取得して読了（2026-07-26）。法第3条に基づく"
+           "登録と、施設基準・倉庫管理主任者の選任要件を確認。登録権者・無登録営業の"
+           "罰則・標準処理期間はこのページには記載が無い。")
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "倉庫業は法第3条に基づく登録制。保管する物品に応じた倉庫施設の基準を"
+           "クリアした倉庫であること、倉庫ごとに一定の要件を備えた倉庫管理主任者を"
+           "選任すること等が必要。冷蔵倉庫向けの標準冷蔵倉庫寄託約款・冷蔵施設明細書"
+           "等が掲載されている。")}
+     {:rule/id "jpn.tokyo-shokuhin-kyoka-todokede"
+      :rule/title "食品衛生法の営業許可・営業届出の区分（東京都保健医療局『食品衛生の窓』）"
+      :rule/url "https://www.hokeniryo1.metro.tokyo.lg.jp/shokuhin/kaisei/files/kyoka_todokede_todokede.pdf"
+      :rule/url-provenance :official-prefectural-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "東京都の公式 PDF（要許可32業種の一覧を含む全2ページ）を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "令和3年6月1日以降、要許可32業種／要届出業種／届出不要業種の3区分。"
+           "届出不要業種の2に『食品又は添加物の貯蔵又は運搬のみをする営業』が挙がるが、"
+           "**冷凍又は冷蔵倉庫業は届出が必要な業種として明示的に除外**されている。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.mlit-soukogyo" "jpn.tokyo-shokuhin-kyoka-todokede"]
+     :condition
+     (str "倉庫業法第3条の登録を受けていること（施設基準の充足と倉庫管理主任者の"
+          "選任を含む）。冷蔵倉庫であれば加えて食品衛生法の営業届出を済ませて"
+          "いること — :additional-gates を参照。片方だけでは足りない。")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis []
+     :condition
+     (str "登録倉庫業者に寄託し自社は在庫調整・受発注の ops 層に徹する形が"
+          "『倉庫業を営む』に当たらないかは未検証。倉庫業法2条の『倉庫業』の定義と"
+          "3条の『営もうとする者』の解釈を原文で確認するまで、この経路を成立と"
+          "判定しない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/written-contract}}
+
+    :known-gaps
+    ["倉庫業法 第2条（定義）・第3条（登録）の条文原文が未取得"
+     "無登録営業の罰則（1年以下の懲役 or 100万円以下の罰金とされる）が公式未確認"
+     "登録の標準処理期間（大臣権限3か月・地方運輸局長権限2か月とされる）が公式未確認"
+     "倉庫業法第三条の登録の基準等に関する告示（国交省告示第43号）が未取得"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/food-manufacture]
+   {:jurisdiction "JPN"
+    :sector :sector/food-manufacture
+    :licence
+    {:licence/name "食品衛生法の営業許可（要許可32業種）"
+     :licence/law "食品衛生法（令和3年6月1日施行の営業許可制度）"
+     :licence/authority "営業所を所管する保健所"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "許可には手数料・更新手続き・営業施設の基準・衛生管理の基準がすべて伴う"
+          "（届出には手数料も更新も施設基準も無い）。cloud-itonami の実装済み食品系"
+          "actor が載る区分: 11 菓子製造業（isic-1071/1073）/ 24 麺類製造業"
+          "（isic-1074）/ 25 そうざい製造業・26 複合型そうざい製造業（isic-1075, 562）/"
+          "27 冷凍食品製造業・28 複合型冷凍食品製造業 / 16 水産製品製造業（isic-1020）/"
+          "21 酒類製造業（isic-1101。ただし酒類は酒税法の製造免許が別途要る）/"
+          "1 飲食店営業（isic-5610）。")}
+    :rules
+    [{:rule/id "jpn.tokyo-shokuhin-kyoka-list"
+      :rule/title "食品衛生法の要許可32業種一覧（東京都保健医療局『食品衛生の窓』）"
+      :rule/url "https://www.hokeniryo1.metro.tokyo.lg.jp/shokuhin/kaisei/files/kyoka_todokede_todokede.pdf"
+      :rule/url-provenance :official-prefectural-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "東京都の公式 PDF 全2ページを読了。32業種の番号と名称を直接確認。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "令和3年6月1日以降の要許可32業種: 1飲食店営業 2調理機能を有する自動販売機 "
+           "3食肉販売業 4魚介類販売業 5魚介類競り売り営業 6集乳業 7乳処理業 "
+           "8特別牛乳搾取処理業 9食肉処理業 10食品の放射線照射業 11菓子製造業 "
+           "12アイスクリーム類製造業 13乳製品製造業 14清涼飲料水製造業 15食肉製品製造業 "
+           "16水産製品製造業 17氷雪製造業 18液卵製造業 19食用油脂製造業 "
+           "20みそ又はしょうゆ製造業 21酒類製造業 22豆腐製造業 23納豆製造業 "
+           "24麺類製造業 25そうざい製造業 26複合型そうざい製造業 27冷凍食品製造業 "
+           "28複合型冷凍食品製造業 29漬物製造業 30密封包装食品製造業 31食品の小分け業 "
+           "32添加物製造業。許可・届出とも食品衛生責任者の設置と HACCP に沿った衛生管理が要る。")}
+     {:rule/id "jpn.tokyo-shokuhin-window"
+      :rule/title "食品衛生法の営業許可と届出（東京都保健医療局）"
+      :rule/url "https://www.hokeniryo1.metro.tokyo.lg.jp/shokuhin/kyokatodokede/index.html"
+      :rule/url-provenance :official-prefectural-site
+      :rule/verification :official-url-retrieved
+      :rule/verification-note
+      "都の公式ページを取得して読了。申請先が「営業所を所管する保健所」であることと施行日を確認。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary "令和3年6月1日から新たな営業許可制度・営業届出制度が開始。申請先は営業所を所管する保健所。"}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.tokyo-shokuhin-kyoka-list" "jpn.tokyo-shokuhin-window"]
+     :condition
+     (str "該当する要許可業種について保健所の営業許可を受けていること。法人で取得"
+          "できる。営業施設の基準・食品衛生責任者の設置・HACCP に沿った衛生管理が伴い、"
+          "更新手続きもある。酒類製造業（21）は加えて酒税法の製造免許が要る点に注意。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["jpn.tokyo-shokuhin-kyoka-list"]
+     :condition
+     (str "製造は許可を持つ製造者が行い（受託製造 / OEM）、自社は食品衛生法上"
+          "届出で足りる範囲（食品販売業等）にとどまること。**自社側も届出は要る** —"
+          "要許可業種でも届出不要業種でもない営業は届出の対象。どこまでが『製造』か"
+          "は業態依存で、31 食品の小分け業が独立した許可業種として立っていることに"
+          "示されるとおり、小分け・包装だけでも許可側に落ちうる。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/written-contract}}
+
+    :known-gaps
+    ["食品衛生法の条文原文（営業許可・届出の根拠条項）が未取得"
+     "施設基準（政令・条例）が未取得"
+     "許可の有効期間・更新間隔・手数料額が未確認（自治体差がある）"
+     "酒税法の製造免許は未収載 — 21 酒類製造業を扱うなら別途調査が要る"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/medical-practice]
+   {:jurisdiction "JPN"
+    :sector :sector/medical-practice
+    :licence
+    {:licence/name "医療機関の開設許可 / 医師免許"
+     :licence/law "医療法 第7条（開設許可）・第7条第2項及び第54条（営利性の否定）"
+     :licence/authority "都道府県知事等"
+     :licence/obtainable-by-company? false
+     :licence/note
+     (str "営利を目的とする法人は開設者になれない。株式会社が医業を営む経路は"
+          "無く、医療法人・医師個人等が開設者となる。")}
+    :rules
+    [{:rule/id "jpn.mhlw-1952-iyu-190"
+      :rule/title "厚生省医務局長回答 昭和27年6月24日 医収第190号（公益法人の設立認可について）"
+      :rule/quote
+      (str "医業はその収益の使途の如何を問わず営利を目的として営むことは許されない"
+           "のであって公益事業を行うための資金調達の目的で病院事業を営むことは"
+           "許されないものと解する。")
+      :rule/url "https://www.mhlw.go.jp/topics/bukyoku/isei/igyou/igyoukeiei/tuchi/270624.pdf"
+      :rule/url-provenance :official-government-site
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      (str "厚生労働省サイトの通知 PDF 全2ページを読了（2026-07-26）。"
+           "高知県知事照会（昭和27年5月30日 27医第309号）に対する回答で、"
+           "照会側が医療法第7条第2項及び同法第54条を根拠に「医業は医療法上"
+           "営利事業ではない」と述べている点も同じ文書上で確認した。")
+      :rule/retrieved-at "2026-07-26"}]
+
+    :route/principal
+    {:verdict :prohibited
+     :basis ["jpn.mhlw-1952-iyu-190"]
+     :condition
+     (str "営利を目的として医業を営むことは許されない。株式会社が開設者となる"
+          "経路は無い。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["jpn.mhlw-1952-iyu-190"]
+     :condition
+     (str "医療法人・医師個人等が開設者となり、自社は医行為に当たらない支援"
+          "（設備・システム・事務受託）に徹すること。ただし、いわゆる MS 法人を"
+          "介した実質的支配の規律や、医療法人への経営関与の限界を条文・通知で"
+          "未検証。医行為の範囲（医師法17条）も原文未取得。運営者の宣誓を要する。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/personally-decided}}
+
+    :known-gaps
+    ["医師法第17条（医業の独占）の条文原文が未取得"
+     "医療法第7条・第54条の条文原文が未取得（上記通知が引用しているのみ）"
+     "MS 法人（メディカルサービス法人）に関する規律・通知が未収載"
+     "昭和27年の回答が現行運用でどこまで維持されているかの後続通知が未確認"]}})
 
 ;; ---------------------------------------------------------------------------
 ;; Accessors
@@ -295,6 +508,16 @@
   [r]
   (contains? #{:primary-source-read :official-url-retrieved}
              (:rule/verification r)))
+
+(defn additional-gates
+  "許認可が1つとは限らない。`:licence` が主たるゲートで、ここには**同時に
+  満たさなければ営業できない別のゲート**が入る。実例: JSIC 4721 冷蔵倉庫業は
+  倉庫業法第3条の登録に加えて食品衛生法の営業届出が要る（東京都の公式資料が
+  『貯蔵・運搬のみの営業』を届出不要としつつ冷凍・冷蔵倉庫業を明示的に除外して
+  いる）。主たる許認可だけを見て『取れた＝営業できる』と判断させないために、
+  カタログとして別立てで持つ。"
+  [jid sector]
+  (get (entry jid sector) :additional-gates []))
 
 (defn known-gaps [jid sector] (get (entry jid sector) :known-gaps []))
 
