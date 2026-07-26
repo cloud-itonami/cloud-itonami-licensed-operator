@@ -2,10 +2,18 @@
   (:require [clojure.test :refer [deftest is testing]]
             [cloud-itonami.licensed-operator.catalog :as cat]))
 
-(defn- all-routes []
-  (for [[k e] cat/catalog
+(defn- national-keys []
+  (remove #(cat/parent-jurisdiction (first %)) (keys cat/catalog)))
+
+(defn- sub-national-keys []
+  (filter #(cat/parent-jurisdiction (first %)) (keys cat/catalog)))
+
+(defn- all-routes
+  "国の層の全 route。地方の層は route を省略して継承してよいので含めない。"
+  []
+  (for [k (national-keys)
         route [:route/principal :route/defer]]
-    [k route (get e route)]))
+    [k route (get (cat/raw-entry (first k) (second k)) route)]))
 
 (deftest every-rule-is-citable
   (doseq [[jid sector] (cat/keys-covered)
@@ -36,11 +44,53 @@
     (is (contains? cat/verdicts (:verdict e))
         (str jid "/" sector "/" route " の verdict が語彙外"))))
 
+(deftest sub-national-layers-inherit-rather-than-duplicate
+  (testing "地方の層は国の層を継承する — 47都道府県ぶん複製しない"
+    (doseq [[jid sector] (sub-national-keys)]
+      (let [nat (cat/parent-jurisdiction jid)
+            resolved (cat/entry jid sector)]
+        (is (some? (cat/raw-entry nat sector))
+            (str jid " の親 " nat " に " sector " が無い（孤児の地方層）"))
+        (is (= nat (:inherited-from resolved)))
+        (is (some? (get resolved :route/principal))
+            "継承後は route が揃うこと")
+        (is (>= (count (:rules resolved))
+                (count (cat/rules nat sector)))
+            "国の層のルールを失わないこと")))))
+
+(deftest sub-national-layers-may-only-tighten
+  (testing "条例・規則は法律が禁じたことを適法にできない"
+    (doseq [[jid sector] (sub-national-keys)
+            route [:route/principal :route/defer]]
+      (let [nat (cat/parent-jurisdiction jid)
+            nv (get-in (cat/raw-entry nat sector) [route :verdict])
+            lv (get-in (cat/raw-entry jid sector) [route :verdict])]
+        (when (and nv lv)
+          (is (>= (get cat/restrictiveness lv) (get cat/restrictiveness nv))
+              (str jid "/" sector "/" route " が国の層より緩い: "
+                   (pr-str lv) " < " (pr-str nv))))))))
+
+(deftest a-loosening-sub-national-layer-is-refused
+  (testing "緩めようとした地方の層は無視され、その事実が記録される"
+    (with-redefs [cat/catalog
+                  (assoc cat/catalog ["JPN-13" :sector/medical-practice]
+                         {:jurisdiction "JPN-13" :sector :sector/medical-practice
+                          :route/principal {:verdict :admissible
+                                            :basis []
+                                            :condition "都の判断で解禁したことにする"}})]
+      (let [r (get-in (cat/entry "JPN-13" :sector/medical-practice)
+                      [:route/principal])]
+        (is (= :prohibited (:verdict r)) "国の :prohibited が維持されること")
+        (is (re-find #"条例・規則は法律が禁じたことを適法にできない"
+                     (:sub-national-loosening-ignored r)))))))
+
 (deftest every-basis-id-resolves
-  (doseq [[[jid sector] route e] (all-routes)
-          rid (:basis e)]
-    (is (some? (cat/rule jid sector rid))
-        (str jid "/" sector "/" route " が未定義の rule id を参照: " rid))))
+  (testing "地方の層も含め、解決後のルール集合の中に根拠が存在すること"
+    (doseq [[jid sector] (cat/keys-covered)
+            route [:route/principal :route/defer]
+            rid (get-in (cat/entry jid sector) [route :basis])]
+      (is (some? (cat/rule jid sector rid))
+          (str jid "/" sector "/" route " が未定義の rule id を参照: " rid)))))
 
 (deftest permissive-verdicts-are-never-groundless
   (testing ":admissible は必ず一次/公式で検証済みのルールに支えられる"
@@ -76,14 +126,15 @@
             (str "未定義の要件 " req))))))
 
 (deftest licence-facts-are-consistent
-  (doseq [[jid sector] (cat/keys-covered)
-          :let [l (:licence (cat/entry jid sector))]]
-    (is (seq (:licence/name l)))
-    (is (seq (:licence/law l)))
-    (is (contains? #{true false} (:licence/obtainable-by-company? l))
-        (str jid "/" sector " の :licence/obtainable-by-company? が未指定"))
-    (when (:licence/fee-jpy l)
-      (is (pos-int? (:licence/fee-jpy l))))))
+  (testing "解決後の licence は（地方の層でも）名称・法条・取得可否が揃う"
+    (doseq [[jid sector] (cat/keys-covered)
+            :let [l (:licence (cat/entry jid sector))]]
+      (is (seq (:licence/name l)))
+      (is (seq (:licence/law l)))
+      (is (contains? #{true false} (:licence/obtainable-by-company? l))
+          (str jid "/" sector " の :licence/obtainable-by-company? が未指定"))
+      (when (:licence/fee-jpy l)
+        (is (pos-int? (:licence/fee-jpy l)))))))
 
 (deftest coverage-is-reported-honestly
   (let [c (cat/coverage [["JPN" :sector/legal-services]

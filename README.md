@@ -10,7 +10,7 @@ StateGraph も台帳も持たない。何も申請せず、許認可も持たず
 **consumer**: `cloud-itonami-isic-6910-legalsupport`（`licensee/verify` に
 reviewer 検査を委譲。抽出元でもある）。
 
-**51 tests / 476 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**58 tests / 686 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -42,11 +42,18 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
 | medical-practice | 医療機関の開設許可 | **不可** | 1 | `:prohibited` | `:conditional` |
 | second-hand-dealing | 古物商許可 | 可 | 1 | `:conditional` | `:conditional` |
 | industrial-waste-collection | 産廃収集運搬業許可 | 可 | 1 | `:conditional` | `:conditional` |
+| waste-disposal | 産廃処分業許可 | 可 | 1 | `:conditional` | `:conditional` |
 | food-manufacture | 食品衛生法 営業許可（32業種） | 可 | 1 | `:conditional` | `:conditional` |
+| alcohol-manufacture | 酒類の製造免許 | 可 | 1 | `:conditional` | `:conditional` |
 | warehousing | 倉庫業の登録 | 可 | **2** | `:conditional` | `:conditional` |
+| telecom | 電気通信事業の登録／届出 | 可 | **2** | `:conditional` | `:unsettled` |
 | employment-placement | 有料職業紹介事業の許可 | 可 | 1 | `:conditional` | `:conditional` |
 | real-estate-brokerage | 宅地建物取引業の免許 | 可 | 1 | `:conditional` | `:conditional` |
 | travel-agency | 旅行業の登録 | 可 | 1 | `:conditional` | `:conditional` |
+| financial-instruments | 金融商品取引業の登録 | 可 | 1 | `:conditional` | `:unsettled` |
+
+地方の層として `JPN-13`（東京都）が industrial-waste-collection /
+food-manufacture / second-hand-dealing の3件。国の層を継承し、上乗せだけを持ちます。
 
 `:conditional` は「カタログが検証できない事実（許認可を実際に持っているか等）に
 かかっている」の意味で、運営者の宣誓（attestation）でのみ解錠する。`:unsettled`
@@ -67,6 +74,30 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
 ;; => [{:licence/name "倉庫業の登録" :licence/law "倉庫業法 第3条" …}
 ;;     {:licence/name "食品衛生法の営業届出（冷凍又は冷蔵倉庫業）"
 ;;      :licence/applies-when :refrigerated …}]
+```
+
+### 法域は国だけではない（`JPN-13`）
+
+許認可の実務値は都道府県で違います。産廃収集運搬の手数料 81,000 円は**東京都の値**
+であって全国一律ではないし、食品衛生法の施設基準は54条により**都道府県の条例**が
+定めます。これを国の層に書くと、大阪で営業する利用者に東京の数字を渡すことになる。
+
+カタログのキーは `[jurisdiction sector]` で、`"JPN-13"` のような ISO 3166-2 形の
+id を置くと `entry` が親（`"JPN"`）から継承して解決します。ルール・副次ゲート・
+`:known-gaps` は積み上がり、`:licence` は地方の値が上書きします。47都道府県ぶん
+複製する必要はありません。
+
+**地方の層は締める方向にしか動けません。** 条例や規則が法律の禁止を適法にすることは
+できないので、地方の verdict が国より緩ければ `entry` はそれを無視して国の verdict を
+維持し、`:sub-national-loosening-ignored` に事実を残します。
+
+```clojure
+(cat/entry "JPN-13" :sector/industrial-waste-collection)
+;; => {:inherited-from "JPN"
+;;     :licence {:licence/law "廃棄物の処理及び清掃に関する法律 第14条第1項"  ; 国から
+;;               :licence/authority "東京都知事（東京都環境局 資源循環推進部）" ; 都で上書き
+;;               :licence/fee-jpy 81000}                                      ; 都だけが持つ
+;;     :rules [...国のルール2件...]}
 ```
 
 ## 委譲はカタログが開いただけでは成立しない
@@ -126,52 +157,27 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **9件（法域×業種）・27ルール**。うち **23 が条文原文の読了**（`:primary-source-read`）、
-4 が公式ページの取得（`:official-url-retrieved`）で、**二次情報のみに依拠したルールは
-ゼロ**です。条文は e-Gov 法令 API（`/api/1/articles`）から取得しました — 法令検索の
-Web ページは JavaScript レンダリングで読めませんが、API は XML を直接返します。
+現在: **16件（法域×業種）・42ルール** —— 国の層13業種 + 東京都の層3件。
+うち **35 が条文原文の読了**（`:primary-source-read`）、7 が公式ページの取得
+（`:official-url-retrieved`）で、**二次情報のみに依拠したルールはゼロ**です。
+条文は e-Gov 法令 API（`/api/1/articles`）から取得しました — 法令検索の Web ページは
+JavaScript レンダリングで読めませんが、API は XML を直接返します。
 
 収録業種は cloud-itonami に実装済み actor が載っているところを優先しました:
-`food-manufacture` は isic-1071/1073/1074/1075/1020/562、`warehousing` は jsic-4721、
+`food-manufacture` は isic-1071/1073/1074/1075/1020/562、`alcohol-manufacture` は
+isic-1101、`waste-disposal` は isic-3821、`warehousing` は jsic-4721、
 `medical-practice` は isic-862/869、`employment-placement` は isic-7810、
-`real-estate-brokerage` は isic-6820、`travel-agency` は isic-7911。
+`real-estate-brokerage` は isic-6820、`travel-agency` は isic-7911、
+`telecom` は isic-6110/6120、`financial-instruments` は isic-6612。
 
-### 境界を決めるのは定義条文だった
-
-**定義条文を全部入れた結果、カタログから `:unsettled` が消えました。** 各業種の
-「どこからが規制業か」は、許可条文ではなく定義条文が決めていたからです。
-
-| 業種 | 定義条文が置いた境界 |
-|---|---|
-| second-hand-dealing | 古物営業法2条2項。3条は1号・2号だけを許可対象にし、3号（競りあつせん業）を含まない |
-| warehousing | 倉庫業法2条2項。「**寄託を受けた**物品の保管」— 寄託の当事者にならなければ外 |
-| real-estate-brokerage | 宅建業法2条2号。**媒介が明文で入る** — 自己が当事者でなくとも媒介すれば免許が要る |
-| employment-placement | 職安法4条。「あつせん」＋**いかなる名義でも手数料を受けるか**で有料／無料が決まる |
-| travel-agency | 旅行業法2条1項。柱書が「**報酬を得て**」、3号・4号が代理・媒介・取次ぎを広く捕捉 |
-
-このうち **real-estate-brokerage と travel-agency は境界が厳しい側**に出ました。
-どちらも「媒介」が明文で規制対象なので、取引当事者や旅行者を引き合わせる機能を
-持たせた瞬間に免許・登録の側へ倒れます。成立しうるのは免許業者の**内部業務**向けに
-システムを提供する位置だけです。
-
-逆に **industrial-waste-collection には但書**があり、自ら排出した産廃を自ら運ぶ
-排出事業者には許可が要りません（14条1項）。ITAD にとってこれは不利な発見で、
-顧客の PC を引き取るなら排出事業者は顧客であって自社ではないため但書に乗れません。
-`:licence/exemptions` として data 化してあります。
-
-**medical-practice の委譲は医療法54条（医療法人は剰余金の配当をしてはならない）が
-直接縛ります** — 医療法人を主体に立てても、そこから利益を取り出す設計自体に
-制約がかかる。業務委託料が実質的な配当と評価されない水準・算定根拠が要ります。
-
-日本の許認可業種は数百あり、これは9件にすぎません。残る穴の多くは条文の外側 —
-省令・条例・通達（例: 食品衛生法の施設基準は54条により**都道府県の条例**が定めるので
-構造的に自治体差がある）と、「媒介」「医業」の外延を示す判例・通達です。
+日本の許認可業種は数百、都道府県は47あり、これは16件にすぎません。残る穴は条文の
+**外側**に移りました —— 省令・条例・通達と、「媒介」「医業」の外延を示す判例。
 各エントリの `:known-gaps` が名指ししています。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 51 tests / 476 assertions
+clojure -M:test   # 58 tests / 686 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

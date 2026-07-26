@@ -17,14 +17,22 @@
  {:keys [["JPN" :sector/legal-services]
          ["JPN" :sector/second-hand-dealing]
          ["JPN" :sector/industrial-waste-collection]
+         ["JPN" :sector/waste-disposal]
          ["JPN" :sector/warehousing]
          ["JPN" :sector/food-manufacture]
+         ["JPN" :sector/alcohol-manufacture]
          ["JPN" :sector/medical-practice]
          ["JPN" :sector/employment-placement]
          ["JPN" :sector/real-estate-brokerage]
-         ["JPN" :sector/travel-agency]]
-  :rules 27
-  :verification {:primary-source-read 23 :official-url-retrieved 4 :secondary-source-only 0}
+         ["JPN" :sector/travel-agency]
+         ["JPN" :sector/telecom]
+         ["JPN" :sector/financial-instruments]
+         ["JPN-13" :sector/industrial-waste-collection]
+         ["JPN-13" :sector/food-manufacture]
+         ["JPN-13" :sector/second-hand-dealing]]
+  :rules 42
+  :verification {:primary-source-read 35 :official-url-retrieved 7 :secondary-source-only 0}
+  :sub-national "ISO 3166-2 形の id で国の層を継承。地方の層は締める方向にしか動けない。"
   :unsettled-routes 0
   :statute-source "e-Gov 法令 API /api/1/articles（法令検索の Web ページは JS レンダリングで読めないが API は XML を返す）"
   :multi-gate ["JSIC 4721 冷蔵倉庫業は倉庫業法第3条の登録に加えて食品衛生法の営業届出が要る"]

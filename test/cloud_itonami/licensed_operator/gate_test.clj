@@ -1,5 +1,6 @@
 (ns cloud-itonami.licensed-operator.gate-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.string]
+            [clojure.test :refer [deftest is testing]]
             [cloud-itonami.licensed-operator.catalog :as cat]
             [cloud-itonami.licensed-operator.gate :as gate]))
 
@@ -275,3 +276,57 @@
       (is (true? (:obtainable? (get s ["JPN" :sector/second-hand-dealing]))))
       (is (true? (:obtainable? (get s ["JPN" :sector/industrial-waste-collection]))))
       (is (false? (:obtainable? (get s ["JPN" :sector/legal-services])))))))
+
+(deftest telecom-has-registration-and-notification-gates
+  (testing "電気通信事業法は規模で登録と届出に分かれる — 登録不要でも無規制ではない"
+    (let [gs (gate/all-gates "JPN" :sector/telecom)]
+      (is (= 2 (count gs)))
+      (is (re-find #"登録" (:licence/name (first gs))))
+      (is (re-find #"届出" (:licence/name (second gs))))
+      (is (= :below-registration-threshold (:licence/applies-when (second gs)))))
+    (let [r (cat/rule "JPN" :sector/telecom "jpn.denki-tsushin-ho-16")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"第九条の登録を受けるべき者を除く" (:rule/quote r))))))
+
+(deftest alcohol-manufacture-has-a-minimum-volume-floor
+  (testing "酒税法7条2項 — 見込数量が最低製造数量に達しなければそもそも免許を受けられない"
+    (let [r (cat/rule "JPN" :sector/alcohol-manufacture "jpn.shuzei-ho-7")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"見込数量が当該酒類につき次に定める数量に達しない場合には、\s*受けることができない"
+                   (clojure.string/replace (:rule/quote r) #"\s+" ""))
+          "最低製造数量の要件が引用されていること"))
+    (is (re-find #"最低製造数量"
+                 (:condition (gate/verdict-for "JPN" :sector/alcohol-manufacture :route/principal))))))
+
+(deftest waste-collection-and-disposal-are-separate-permits
+  (testing "収集運搬（14条1項）と処分（14条6項）は別の許可"
+    (is (not= (get-in (cat/entry "JPN" :sector/industrial-waste-collection)
+                      [:licence :licence/law])
+              (get-in (cat/entry "JPN" :sector/waste-disposal)
+                      [:licence :licence/law])))
+    (testing "どちらにも自己処理の適用除外がある"
+      (doseq [[sector ex-id] [[:sector/industrial-waste-collection :own-waste-self-transport]
+                              [:sector/waste-disposal :own-waste-self-disposal]]]
+        (is (contains? (set (map :exemption/id
+                                 (get-in (cat/entry "JPN" sector) [:licence :licence/exemptions])))
+                       ex-id))))))
+
+(deftest tokyo-layer-adds-local-facts-without-losing-national-ones
+  (testing "地方の層は国の層に上乗せする — 手数料は東京都の値、条文は国のもの"
+    (let [e (cat/entry "JPN-13" :sector/industrial-waste-collection)]
+      (is (= "JPN" (:inherited-from e)))
+      (is (= 81000 (get-in e [:licence :licence/fee-jpy])) "東京都の手数料")
+      (is (re-find #"東京都" (get-in e [:licence :licence/authority])))
+      (is (= "廃棄物の処理及び清掃に関する法律 第14条第1項" (get-in e [:licence :licence/law]))
+          "国の法条は失われないこと")
+      (is (some #(= "jpn.haikibutsu-ho-14" (:rule/id %)) (:rules e))
+          "国のルールを継承していること"))
+    (testing "国の層には東京都固有の値が混ざっていないこと"
+      (is (nil? (get-in (cat/raw-entry "JPN" :sector/industrial-waste-collection)
+                        [:licence :licence/fee-jpy]))
+          "81,000円は全国一律ではないので国の層に置かない"))
+    (testing "gate も地方の法域を解決できる"
+      (let [p (gate/plan {:jurisdiction "JPN-13" :sector :sector/industrial-waste-collection
+                          :licence-held? true :attestations #{:route/principal}})]
+        (is (= :principal (:route p)))
+        (is (seq (:citations p)))))))

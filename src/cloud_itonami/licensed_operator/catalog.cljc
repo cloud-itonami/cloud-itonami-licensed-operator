@@ -52,7 +52,15 @@
    :sector/real-estate-brokerage
    "宅地建物取引業（ISIC 6820）"
    :sector/travel-agency
-   "旅行業・旅行業者代理業（ISIC 7911）"})
+   "旅行業・旅行業者代理業（ISIC 7911）"
+   :sector/alcohol-manufacture
+   "酒類製造業（ISIC 1101）"
+   :sector/waste-disposal
+   "産業廃棄物の処分（ISIC 3821）"
+   :sector/telecom
+   "電気通信事業（ISIC 6110/6120）"
+   :sector/financial-instruments
+   "金融商品取引業（ISIC 6612）"})
 
 (def routes
   {:route/principal
@@ -251,8 +259,9 @@
     :licence
     {:licence/name "産業廃棄物収集運搬業許可"
      :licence/law "廃棄物の処理及び清掃に関する法律 第14条第1項"
-     :licence/authority "都道府県知事（東京都の場合 東京都環境局 資源循環推進部）"
-     :licence/fee-jpy 81000
+     :licence/authority "都道府県知事"
+     ;; 手数料・講習会の運用は都道府県ごとなので、国の層に置かない。
+     ;; 東京都の値は ["JPN-13" :sector/industrial-waste-collection] にある。
      :licence/obtainable-by-company? true
      :licence/kyoninka-procedure :sanpai-shuun-tokyo
      :licence/valid-years {:min 5 :basis "廃掃法14条2項（五年を下らない期間ごとに更新）"}
@@ -270,7 +279,9 @@
        :exemption/detail
        "同但書 — 専ら再生利用の目的となる産業廃棄物のみの収集運搬を業として行う者も対象外。"}]
      :licence/note
-     (str "法人でも取得できる。講習会修了証の提出が求められる。"
+     (str "法人でも取得できる。手数料・標準処理期間・講習会の運用は都道府県ごとに"
+          "異なるので、国の層には置かない —— 東京都の値は "
+          "[\"JPN-13\" :sector/industrial-waste-collection] にある。"
           "手続きの data は kotoba-lang/kyoninka の :sanpai-shuun-tokyo。")}
     :rules
     [{:rule/id "jpn.tokyo-sanpai-license-application"
@@ -931,22 +942,394 @@
     :known-gaps
     ["旅行サービス手配業（法2条系）の規律が未整理 — 代理業との区別"
      "種別（第1種〜第3種・地域限定）ごとの営業保証金・基準資産額が未取得"
-     "登録権者の委任関係（都道府県知事への委任）が未確認"]}})
+     "登録権者の委任関係（都道府県知事への委任）が未確認"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/alcohol-manufacture]
+   {:jurisdiction "JPN"
+    :sector :sector/alcohol-manufacture
+    :licence
+    {:licence/name "酒類の製造免許"
+     :licence/law "酒税法 第7条"
+     :licence/authority "製造場の所在地の所轄税務署長"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "**品目別・製造場ごと**に免許を要する。他の許認可に無い特徴として"
+          "7条2項が**最低製造数量**を定めており、見込数量がこれに達しない者は"
+          "そもそも免許を受けられない —— 小規模事業者を構造的に排除する設計。")}
+    :rules
+    [{:rule/id "jpn.shuzei-ho-7"
+      :rule/title "酒税法 第7条（酒類の製造免許）"
+      :rule/instrument "酒税法（昭和28年法律第6号）"
+      :rule/quote
+      (str "酒類を製造しようとする者は、政令で定める手続により、製造しようとする"
+           "酒類の品目…別に、製造場ごとに、その製造場の所在地の所轄税務署長の免許"
+           "…を受けなければならない。……"
+           "２ 酒類の製造免許は、一の製造場において製造免許を受けた後一年間に製造"
+           "しようとする酒類の見込数量が当該酒類につき次に定める数量に達しない場合には、"
+           "受けることができない。一 清酒 六十キロリットル……"
+           "四 単式蒸留焼酎 十キロリットル……七 果実酒 六キロリットル")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十八年法律第六号;article=7"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から7条全体を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "免許は品目別・製造場ごと。**7条2項の最低製造数量要件**が実質的な参入障壁で、"
+           "清酒・合成清酒・連続式蒸留焼酎・ビール 各60kL、単式蒸留焼酎・みりん 各10kL、"
+           "果実酒・甘味果実酒 各6kL 等。1項但書により、免許を受けた製造場で当該酒類の"
+           "原料とするために製造する酒類は免許不要。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.shuzei-ho-7"]
+     :condition
+     (str "品目別・製造場ごとの製造免許を受けていること。加えて7条2項の"
+          "最低製造数量に**見込数量が達すること** —— これは許可要件というより"
+          "事業規模の下限で、クラフト規模の新規参入はここで止まる。"
+          "食品衛生法側の営業許可（21 酒類製造業）も別途要る。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["jpn.shuzei-ho-7"]
+     :condition
+     (str "免許を持つ酒類製造者が製造の主体となり、自社は企画・販売・"
+          "システム提供にとどまること。7条は『酒類を製造しようとする者』を"
+          "捕捉するので、製造行為の主体にならなければ免許義務は及ばない。"
+          "ただし酒類の**販売**には別途 酒税法9条の販売業免許が要る（未収載）。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/written-contract}}
+
+    :known-gaps
+    ["酒税法 第9条（酒類の販売業免許）が未収載 —— 販売側に回るなら必須"
+     "7条1項が委ねる政令の手続きが未取得"
+     "需給調整要件（10条11号系）が未取得"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/waste-disposal]
+   {:jurisdiction "JPN"
+    :sector :sector/waste-disposal
+    :licence
+    {:licence/name "産業廃棄物処分業の許可"
+     :licence/law "廃棄物処理法 第14条第6項"
+     :licence/authority "業を行おうとする区域を管轄する都道府県知事"
+     :licence/obtainable-by-company? true
+     :licence/valid-years {:min 5 :basis "廃掃法14条7項（五年を下らない期間ごとに更新）"}
+     :licence/exemptions
+     [{:exemption/id :own-waste-self-disposal
+       :exemption/detail
+       (str "14条6項但書 —「事業者（自らその産業廃棄物を処分する場合に限る。）」"
+            "は許可不要。収集運搬（1項但書）と同じ構造で、**自ら排出した産廃を"
+            "自ら処分する分には許可が要らない**。")}
+      {:exemption/id :moppara-recycling
+       :exemption/detail "同但書 — 専ら再生利用の目的となる産業廃棄物のみの処分を業として行う者も対象外。"}]
+     :licence/note
+     (str "収集運搬（14条1項）とは**別の許可**。ITAD で回収したPCを自社で"
+          "破砕・データ消去して再資源化まで行うなら、運搬の許可だけでは足りない。")}
+    :rules
+    [{:rule/id "jpn.haikibutsu-ho-14-6"
+      :rule/title "廃棄物処理法 第14条第6項（産業廃棄物処分業の許可）"
+      :rule/instrument "廃棄物の処理及び清掃に関する法律（昭和45年法律第137号）"
+      :rule/quote
+      (str "産業廃棄物の処分を業として行おうとする者は、当該業を行おうとする区域を"
+           "管轄する都道府県知事の許可を受けなければならない。ただし、事業者"
+           "（自らその産業廃棄物を処分する場合に限る。）、専ら再生利用の目的となる"
+           "産業廃棄物のみの処分を業として行う者その他環境省令で定める者については、"
+           "この限りでない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和四十五年法律第百三十七号;article=14"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から14条全体を取得して読了（6項〜9項を含む）。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "収集運搬（1項）と対になる別許可。但書の適用除外も同じ3類型。"
+           "7項により五年を下らない政令期間ごとの更新を要する。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.haikibutsu-ho-14-6"]
+     :condition
+     (str "処分業の許可を受けていること。**収集運搬の許可とは別**なので、"
+          "回収から破砕・再資源化まで一気通貫でやるなら両方要る。"
+          "自ら排出した産廃を自ら処分する範囲なら但書で不要。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["jpn.haikibutsu-ho-14-6"]
+     :condition
+     (str "許可を持つ処分業者に委託し、自社は受発注・トレーサビリティの"
+          "ops 層に徹すること。委託基準（12条5項〜、マニフェスト）は未取得のため"
+          "運営者の宣誓を要する。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/not-expired :req/written-contract}}
+
+    :known-gaps
+    ["委託基準（第12条第5項〜、施行令第6条の2）の条文原文が未取得"
+     "14条7項の「政令で定める期間」の具体値が未確認"
+     "中間処理と最終処分の区分・それぞれの許可要否が未整理"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/telecom]
+   {:jurisdiction "JPN"
+    :sector :sector/telecom
+    :licence
+    {:licence/name "電気通信事業の登録（規模により届出）"
+     :licence/law "電気通信事業法 第9条（登録）／第16条（届出）"
+     :licence/authority "総務大臣"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "**規模で二段に分かれる珍しい構造**。原則は9条の登録だが、"
+          "設置する電気通信回線設備の規模と区域が総務省令の基準を超えなければ"
+          "登録は不要で、16条の届出で足りる。設備を持たないサービスは"
+          "実務上ここに落ちる。")}
+    :additional-gates
+    [{:licence/name "電気通信事業の届出（登録を要しない場合）"
+      :licence/law "電気通信事業法 第16条"
+      :licence/authority "総務大臣"
+      :licence/obtainable-by-company? true
+      :licence/applies-when :below-registration-threshold
+      :licence/note
+      (str "9条の登録を受けるべき者を除く電気通信事業者は、16条により届出を"
+           "しなければならない。**登録が不要でも無規制ではない** —— 届出は免れない。")}]
+    :rules
+    [{:rule/id "jpn.denki-tsushin-ho-9"
+      :rule/title "電気通信事業法 第9条（電気通信事業の登録）"
+      :rule/instrument "電気通信事業法（昭和59年法律第86号）"
+      :rule/quote
+      (str "電気通信事業を営もうとする者は、総務大臣の登録を受けなければならない。"
+           "ただし、次に掲げる場合は、この限りでない。"
+           "一 その者の設置する電気通信回線設備…の規模及び当該電気通信回線設備を"
+           "設置する区域の範囲が総務省令で定める基準を超えない場合……")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和五十九年法律第八十六号;article=9"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から9条を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "登録は原則だが、但書1号により**回線設備の規模・区域が総務省令の基準を"
+           "超えなければ登録不要**。閾値そのものは省令にあり未取得。")}
+     {:rule/id "jpn.denki-tsushin-ho-16"
+      :rule/title "電気通信事業法 第16条（電気通信事業の届出）"
+      :rule/instrument "電気通信事業法（昭和59年法律第86号）"
+      :rule/quote
+      (str "電気通信事業を営もうとする者（第九条の登録を受けるべき者を除く。）は、"
+           "総務省令で定めるところにより、次に掲げる事項を記載した書類を添えて、"
+           "その旨を総務大臣に届け出なければならない。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和五十九年法律第八十六号;article=16"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から16条を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "登録を要しない事業者も届出は必要。**『登録不要＝規制外』ではない**という"
+           "この分野の落とし穴を条文が明示している。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.denki-tsushin-ho-9" "jpn.denki-tsushin-ho-16"]
+     :condition
+     (str "回線設備の規模・区域が総務省令の基準を超えるなら9条の登録、"
+          "超えないなら16条の届出。**いずれにせよ何もしないで済む道は無い。**"
+          "閾値は総務省令にあり未取得なので、どちらに落ちるかは要一次確認。")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis []
+     :condition
+     (str "登録/届出済み事業者の設備を使って自社がサービスを出す形が"
+          "『電気通信事業を営む』に当たらないかは未検証。2条の『電気通信事業』"
+          "『電気通信役務』の定義を原文で確認するまで判定しない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["電気通信事業法 第2条（定義）の条文原文が未取得 —— defer の境界がここで決まる"
+     "9条但書1号の閾値を定める総務省令が未取得"
+     "第三号事業・基礎的電気通信役務の区分が未整理"]}
+
+   ;; -----------------------------------------------------------------------
+   ["JPN" :sector/financial-instruments]
+   {:jurisdiction "JPN"
+    :sector :sector/financial-instruments
+    :licence
+    {:licence/name "金融商品取引業の登録"
+     :licence/law "金融商品取引法 第29条"
+     :licence/authority "内閣総理大臣（金融庁長官へ委任）"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "条文は極めて短いが、**登録を受けた者でなければ行うことができない**"
+          "という禁止の書きぶりで、他の許認可の「受けなければならない」より強い。"
+          "登録拒否要件・資本金要件は別条にあり未取得。")}
+    :rules
+    [{:rule/id "jpn.kinsho-ho-29"
+      :rule/title "金融商品取引法 第29条（登録）"
+      :rule/instrument "金融商品取引法（昭和23年法律第25号）"
+      :rule/quote "金融商品取引業は、内閣総理大臣の登録を受けた者でなければ、行うことができない。"
+      :rule/url "https://laws.e-gov.go.jp/api/1/articles;lawNum=昭和二十三年法律第二十五号;article=29"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note "e-Gov 法令 API から29条を取得して読了。全文が一文。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "「登録を受けた者でなければ、行うことができない」—— 行為主体を"
+           "登録者に限定する書き方。2条8項の『金融商品取引業』の定義が"
+           "実際の射程を決めるが未取得。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.kinsho-ho-29"]
+     :condition
+     (str "金融商品取引業の登録を受けていること。第一種・第二種・投資助言代理・"
+          "投資運用の別と、それぞれの資本金・体制要件は別条にあり未取得。")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis []
+     :condition
+     (str "登録業者の背後で ops 層に徹する形が『金融商品取引業を行う』に"
+          "当たらないかは未検証。2条8項の定義を原文で確認するまで判定しない。"
+          "この分野は金融サービス仲介業（金サ法）等の隣接制度も絡む。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["金商法 第2条第8項（金融商品取引業の定義）が未取得 —— 射程がここで決まる"
+     "登録拒否要件・最低資本金（第29条の4）が未取得"
+     "金融サービス仲介業（金融サービス提供法）が未収載"]}
+
+   ;; -----------------------------------------------------------------------
+   ;; 地方の層（ISO 3166-2）。国の層を継承し、上乗せだけを持つ。
+   ;; 緩める方向の verdict は `entry` が拒否する（条例は法律を覆せない）。
+   ["JPN-13" :sector/industrial-waste-collection]
+   {:jurisdiction "JPN-13"
+    :sector :sector/industrial-waste-collection
+    :licence
+    {:licence/authority "東京都知事（東京都環境局 資源循環推進部）"
+     :licence/fee-jpy 81000
+     :licence/fee-basis "jpn.tokyo-sanpai-license-application"
+     :licence/note
+     (str "手数料 81,000 円（産業廃棄物・特別管理産業廃棄物とも、新規）は"
+          "**東京都の値**であって全国一律ではない。令和8年4月1日以降の予約日に"
+          "ついては講習会の修了証（写し）の提出が求められる。")}
+    :rules []
+    :known-gaps ["他の都道府県の手数料・運用は未収載（この層は東京都のみ）"]}
+
+   ["JPN-13" :sector/food-manufacture]
+   {:jurisdiction "JPN-13"
+    :sector :sector/food-manufacture
+    :licence
+    {:licence/authority "東京都知事（申請先は営業所を所管する保健所）"}
+    :rules []
+    :route/principal
+    {:verdict :conditional
+     :basis ["jpn.shokuhin-eisei-ho-54"]
+     :condition
+     (str "施設基準は食品衛生法54条により**都道府県の条例**が定めるので、"
+          "東京都で営業するなら東京都の条例に適合すること。"
+          "全国一律の基準を前提に設計してはならない。")}
+    :known-gaps
+    ["東京都食品衛生法施行条例（施設基準の具体値）が未取得"
+     "特別区・政令市が保健所を設置する場合の権限関係が未整理"]}
+
+   ["JPN-13" :sector/second-hand-dealing]
+   {:jurisdiction "JPN-13"
+    :sector :sector/second-hand-dealing
+    :licence
+    {:licence/authority "東京都公安委員会"
+     :licence/window "主たる営業所の所在地を管轄する警察署 生活安全課 防犯係（警視庁）"}
+    :rules []
+    :known-gaps ["他の都道府県公安委員会の運用差は未収載（この層は東京都のみ）"]}})
 
 ;; ---------------------------------------------------------------------------
 ;; Accessors
 ;; ---------------------------------------------------------------------------
 
-(defn entry
-  "The catalog entry for `[jid sector]`, or nil. nil means NO spec-basis."
+;; ---------------------------------------------------------------------------
+;; Sub-national layering
+;; ---------------------------------------------------------------------------
+
+(defn parent-jurisdiction
+  "`\"JPN-13\"` -> `\"JPN\"`; `\"JPN\"` -> nil. Sub-national ids use the
+  ISO 3166-2 shape, so the country prefix is the parent."
+  [jid]
+  (when (string? jid)
+    (let [i (.indexOf ^String jid "-")]
+      (when (pos? i) (subs jid 0 i)))))
+
+(def restrictiveness
+  "How restrictive a verdict is. Used to enforce that a sub-national
+  layer may only tighten. A prefecture ordinance cannot make lawful what
+  the statute forbids, so `resolve-entry` refuses any local entry that
+  would loosen the national one."
+  {:admissible 0 :conditional 1 :unsettled 2 :prohibited 3})
+
+(defn- merge-route [nat loc route]
+  (let [n (get nat route) l (get loc route)]
+    (cond
+      (nil? l) n
+      (nil? n) l
+      :else
+      (let [rn (get restrictiveness (:verdict n) 2)
+            rl (get restrictiveness (:verdict l) 2)
+            loosens? (< rl rn)]
+        (cond-> (merge n (dissoc l :verdict))
+          (not loosens?) (assoc :verdict (:verdict l))
+          loosens?       (assoc :verdict (:verdict n)
+                                :sub-national-loosening-ignored
+                                (str "地方の層が " (pr-str (:verdict l))
+                                     " に緩めようとしたが、上位法の "
+                                     (pr-str (:verdict n)) " を維持した。"
+                                     "条例・規則は法律が禁じたことを適法にできない。"))
+          (seq (:condition l))
+          (assoc :condition (str (:condition n)
+                                 (when (seq (:condition n)) "\n【地方の上乗せ】")
+                                 (:condition l)))
+          true (assoc :basis (vec (distinct (concat (:basis n) (:basis l))))))))))
+
+(defn raw-entry
+  "The catalog entry stored under exactly `[jid sector]`, with no
+  inheritance. Use `entry` unless you specifically want the unmerged
+  layer."
   [jid sector]
   (get catalog [jid sector]))
+
+(defn entry
+  "The catalog entry for `[jid sector]`, resolving the sub-national
+  chain. A matter in `\"JPN-13\"` gets the national statute layer from
+  `\"JPN\"` with Tokyo's ordinance/administrative layer merged on top:
+  rules and additional gates accumulate, and the local verdict applies
+  only if it is at least as restrictive as the national one.
+
+  Returns nil when neither layer exists — that is still NO spec-basis."
+  [jid sector]
+  (let [loc (raw-entry jid sector)
+        nat (some-> (parent-jurisdiction jid) (raw-entry sector))]
+    (cond
+      (nil? nat) loc
+      (nil? loc) (assoc nat :jurisdiction jid :inherited-from (parent-jurisdiction jid))
+      :else
+      (-> (merge nat loc)
+          (assoc :jurisdiction jid
+                 :inherited-from (parent-jurisdiction jid)
+                 :licence (merge (:licence nat) (:licence loc))
+                 :rules (vec (concat (:rules nat) (:rules loc)))
+                 :additional-gates (vec (concat (:additional-gates nat)
+                                                (:additional-gates loc)))
+                 :known-gaps (vec (concat (:known-gaps nat) (:known-gaps loc)))
+                 :route/principal (merge-route nat loc :route/principal)
+                 :route/defer (merge-route nat loc :route/defer))))))
 
 (defn keys-covered [] (vec (sort-by (juxt first (comp str second)) (keys catalog))))
 
 (defn jurisdictions [] (vec (sort (distinct (map first (keys catalog))))))
 
-(defn rules [jid sector] (get (entry jid sector) :rules []))
+(defn rules
+  "Cited rules for `[jid sector]`, including any inherited from the
+  national layer."
+  [jid sector]
+  (get (entry jid sector) :rules []))
 
 (defn rule [jid sector rule-id]
   (first (filter #(= rule-id (:rule/id %)) (rules jid sector))))
