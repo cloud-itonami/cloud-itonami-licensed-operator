@@ -4,8 +4,11 @@
 自社はその ops 層に徹する（defer）ことができるか** を判定する `.cljc` commons。
 
 `cloud-itonami-regulatory-tracker` と同じく **plain library** — advisor も
-StageGraph も台帳も持たない。何も申請せず、許認可も持たず、官庁にも接触しない。
+StateGraph も台帳も持たない。何も申請せず、許認可も持たず、官庁にも接触しない。
 呼び出し側 actor の governor が結果を見て自分で HOLD/escalate/commit を決める。
+
+**consumer**: `cloud-itonami-isic-6910-legalsupport`（`licensee/verify` に
+reviewer 検査を委譲。抽出元でもある）。
 
 **51 tests / 476 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
@@ -183,7 +186,7 @@ clojure -M:lint   # clj-kondo, errors fail
 
 ## Related
 
-- [`cloud-itonami-isic-6910-legalsupport`](https://github.com/cloud-itonami/cloud-itonami-isic-6910-legalsupport) — この形の最初の実証（弁護士）。当面は自前の検査を持ち続け、触るついでにこちらへ寄せる
+- [`cloud-itonami-isic-6910-legalsupport`](https://github.com/cloud-itonami/cloud-itonami-isic-6910-legalsupport) — この形の最初の実証（弁護士）であり、**最初の consumer**。reviewer 検査はこの repo から抽出されたもので、2026-07-26 に legalsupport 側の自前実装を撤去して `licensee/verify` への委譲に切り替えた
 - [`cloud-itonami-regulatory-tracker`](https://github.com/cloud-itonami/cloud-itonami-regulatory-tracker) — 許認可を**取る**進行の管理（別の問い）
 - [`kotoba-lang/kyoninka`](https://github.com/kotoba-lang/kyoninka) — 日本の許認可手続きの procedure-as-data。`:next` の行き先
 
