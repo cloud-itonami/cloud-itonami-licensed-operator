@@ -198,3 +198,49 @@
     (is (= :sanpai-shuun-tokyo
            (get-in (cat/entry "JPN" :sector/industrial-waste-collection)
                    [:licence :licence/kyoninka-procedure])))))
+
+(deftest requirement-bases-resolve-and-are-declared
+  (testing "要件に実定法の根拠が付いているなら、その rule が実在し要件も宣言されていること"
+    (doseq [[jid sector] (cat/keys-covered)
+            :let [d (get (cat/entry jid sector) :route/defer)]
+            [req rid] (:licensee-requirement-basis d)]
+      (is (contains? cat/licensee-requirements req)
+          (str "未定義の要件 " req " に根拠が付いている"))
+      (is (contains? (:licensee-requirements d) req)
+          (str req " が根拠付きなのに :licensee-requirements に無い"))
+      (is (some? (cat/rule jid sector rid))
+          (str req " の根拠 " rid " が解決できない"))
+      (is (cat/verified-rule? (cat/rule jid sector rid))
+          (str req " の根拠 " rid " が未検証出典")))))
+
+(deftest waste-delegation-standards-back-two-requirements
+  (testing "廃掃法施行令6条の2 — scope-covers と written-contract に政令の明文根拠"
+    (doseq [sector [:sector/industrial-waste-collection :sector/waste-disposal]]
+      (let [d (get (cat/entry "JPN" sector) :route/defer)]
+        (is (= {:req/scope-covers "jpn.haiki-rei-6-2"
+                :req/written-contract "jpn.haiki-rei-6-2"}
+               (:licensee-requirement-basis d))
+            (str sector " の要件根拠が付いていない"))))
+    (let [r (cat/rule "JPN" :sector/waste-disposal "jpn.haiki-rei-6-2")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"その事業の範囲に含まれる" (:rule/quote r)))
+      (is (re-find #"委託契約は、書面により行い" (:rule/quote r))))))
+
+(deftest telecom-threshold-is-a-concrete-geography-test
+  (testing "施行規則3条 — 市町村／都道府県を超えるかで登録と届出が分かれる"
+    (let [r (cat/rule "JPN" :sector/telecom "jpn.denki-kisoku-3")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"一の市町村" (:rule/quote r)))
+      (is (re-find #"一の都道府県の区域" (:rule/quote r))))
+    (is (re-find #"回線設備を自ら設置しないサービス"
+                 (get-in (cat/entry "JPN" :sector/telecom) [:route/principal :condition]))
+        "設備を持たない事業者がどちらに落ちるかが書かれていること")))
+
+(deftest food-permit-categories-come-from-the-cabinet-order
+  (testing "要許可32業種は施行令35条が指定している — 業種名だけで当てはめると外す"
+    (let [r (cat/rule "JPN" :sector/food-manufacture "jpn.shokuhin-eisei-rei-35")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"法第五十四条の規定により都道府県が施設についての基準を定めるべき営業"
+                   (:rule/quote r)))
+      (is (re-find #"パン及びあん類を含む" (:rule/quote r))
+          "各号が定義を伴うことの実例が引用に入っていること"))))

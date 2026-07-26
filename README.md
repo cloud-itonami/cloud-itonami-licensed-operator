@@ -10,7 +10,7 @@ StateGraph も台帳も持たない。何も申請せず、許認可も持たず
 **consumer**: `cloud-itonami-isic-6910-legalsupport`（`licensee/verify` に
 reviewer 検査を委譲。抽出元でもある）。
 
-**58 tests / 686 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**62 tests / 755 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -157,11 +157,13 @@ id を置くと `entry` が親（`"JPN"`）から継承して解決します。�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **16件（法域×業種）・42ルール** —— 国の層13業種 + 東京都の層3件。
-うち **35 が条文原文の読了**（`:primary-source-read`）、7 が公式ページの取得
-（`:official-url-retrieved`）で、**二次情報のみに依拠したルールはゼロ**です。
-条文は e-Gov 法令 API（`/api/1/articles`）から取得しました — 法令検索の Web ページは
-JavaScript レンダリングで読めませんが、API は XML を直接返します。
+現在: **16件（法域×業種）・35の異なるルール**（継承分を含む延べ48）—— 国の層13業種 +
+東京都の層3件。うち **31 が条文原文の読了**（`:primary-source-read`）、4 が公式ページの
+取得（`:official-url-retrieved`）で、**二次情報のみに依拠したルールはゼロ**です。
+（地方の層は国のルールを継承するので延べ数は同じ条文を複数回数えます。`coverage` は
+`:rule-count` と `:distinct-rule-count` の両方を返します。）
+法律・政令・省令はすべて e-Gov 法令 API から取得しました —— `/api/1/articles` が
+条単位、`/api/1/lawdata` が法令全文（電気通信事業法施行規則は約20MB）を XML で返します。
 
 収録業種は cloud-itonami に実装済み actor が載っているところを優先しました:
 `food-manufacture` は isic-1071/1073/1074/1075/1020/562、`alcohol-manufacture` は
@@ -170,14 +172,30 @@ isic-1101、`waste-disposal` は isic-3821、`warehousing` は jsic-4721、
 `real-estate-brokerage` は isic-6820、`travel-agency` は isic-7911、
 `telecom` は isic-6110/6120、`financial-instruments` は isic-6612。
 
-日本の許認可業種は数百、都道府県は47あり、これは16件にすぎません。残る穴は条文の
-**外側**に移りました —— 省令・条例・通達と、「媒介」「医業」の外延を示す判例。
+### 要件に実定法の根拠が付いた
+
+`licensee-requirements` の6つは、これまで「委譲が成立するには常識的にこれが要る
+だろう」というカタログ作成者の判断でした。**廃掃法施行令6条の2 がそのうち2つに
+明文の根拠を与えます。**
+
+- 1号・2号「委託しようとする産業廃棄物の運搬（処分）が**その事業の範囲に含まれる**
+  ものに委託すること」→ `:req/scope-covers` そのもの
+- 4号「**委託契約は、書面により行い**、当該委託契約書には…条項が含まれ」
+  → `:req/written-contract` そのもの
+
+**許可を持っているだけでは足りず、その許可の事業範囲が当該廃棄物をカバーして
+いることが委託者側の義務**として政令に書かれている。カタログは
+`:licensee-requirement-basis` でこの対応を持ち、テストが根拠 rule の実在と
+検証水準を確かめます。
+
+日本の許認可業種は数百、都道府県は47あり、これは16件にすぎません。残る穴は
+条例（自治体の例規集は e-Gov に無い）と、「媒介」「医業」の外延を示す判例です。
 各エントリの `:known-gaps` が名指ししています。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 58 tests / 686 assertions
+clojure -M:test   # 62 tests / 755 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

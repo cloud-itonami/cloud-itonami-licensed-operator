@@ -30,8 +30,9 @@
          ["JPN-13" :sector/industrial-waste-collection]
          ["JPN-13" :sector/food-manufacture]
          ["JPN-13" :sector/second-hand-dealing]]
-  :rules 42
-  :verification {:primary-source-read 35 :official-url-retrieved 7 :secondary-source-only 0}
+  :rules 35  ; 異なるルール数（継承分を含む延べは48）
+  :verification {:primary-source-read 31 :official-url-retrieved 4 :secondary-source-only 0}
+  :requirement-basis "廃掃法施行令6条の2 が :req/scope-covers と :req/written-contract に明文根拠を与える"
   :sub-national "ISO 3166-2 形の id で国の層を継承。地方の層は締める方向にしか動けない。"
   :unsettled-routes 0
   :statute-source "e-Gov 法令 API /api/1/articles（法令検索の Web ページは JS レンダリングで読めないが API は XML を返す）"

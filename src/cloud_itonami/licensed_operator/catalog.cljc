@@ -315,7 +315,37 @@
       :rule/summary
       (str "許可権者は業を行う区域を管轄する都道府県知事。**但書に3類型の適用除外**"
            "（自ら運搬する排出事業者 / 専ら再生利用目的 / 環境省令で定める者）。"
-           "2項により五年を下らない政令期間ごとの更新を要し、更新しなければ失効する。")}]
+           "2項により五年を下らない政令期間ごとの更新を要し、更新しなければ失効する。")}
+     {:rule/id "jpn.haiki-rei-6-2"
+      :rule/title "廃棄物処理法施行令 第6条の2（事業者の産業廃棄物の運搬、処分等の委託の基準）"
+      :rule/instrument "廃棄物の処理及び清掃に関する法律施行令（昭和46年政令第300号）"
+      :rule/quote
+      (str "法第十二条第六項の政令で定める基準は、次のとおりとする。"
+           "一 産業廃棄物…の運搬にあつては、他人の産業廃棄物の運搬を業として行うことが"
+           "できる者であつて**委託しようとする産業廃棄物の運搬がその事業の範囲に含まれる**"
+           "ものに委託すること。"
+           "二 産業廃棄物の処分又は再生にあつては、他人の産業廃棄物の処分又は再生を業として"
+           "行うことができる者であつて委託しようとする産業廃棄物の処分又は再生が"
+           "その事業の範囲に含まれるものに委託すること。……"
+           "四 **委託契約は、書面により行い**、当該委託契約書には、次に掲げる事項に"
+           "ついての条項が含まれ、かつ、環境省令で定める書面が添付されていること。"
+           "イ 委託する産業廃棄物の種類及び数量　"
+           "ロ 産業廃棄物の運搬を委託するときは、運搬の最終目的地の所在地　"
+           "ハ 産業廃棄物の処分又は再生を委託するときは、その処分又は再生の場所の所在地、"
+           "その処分又は再生の方法及びその処分又は再生に係る施設の処理能力……")
+      :rule/url "https://laws.e-gov.go.jp/api/1/lawdata/昭和四十六年政令第三百号"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      "e-Gov 法令 API（lawdata）で施行令全文を取得し、第6条の2を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**この commons の licensee-requirements のうち2つに、初めて実定法の"
+           "明文根拠がついた**: 1号・2号が『委託しようとする産廃の運搬／処分が"
+           "その事業の範囲に含まれる』ことを要求しており `:req/scope-covers` そのもの、"
+           "4号が『委託契約は書面により行い』と定めていて `:req/written-contract` そのもの。"
+           "許可を持っているだけでは足りず、**その許可の事業範囲が当該廃棄物を"
+           "カバーしていること**が委託者側の義務として課される。")}]
 
     :route/principal
     {:verdict :conditional
@@ -328,18 +358,23 @@
     {:verdict :conditional
      :basis ["jpn.haikibutsu-ho-14"]
      :condition
-     (str "許可業者に委託する形自体は廃掃法が想定する枠組みだが、委託基準"
-          "（書面契約・マニフェスト交付等）の条文を原文で未検証。ここを確認する"
-          "まで運営者の宣誓を要する。なお ITAD の宅配回収では『廃棄物該当性』"
-          "（買取リユース＝古物商の範囲 / 廃棄物＝廃掃法の範囲）自体が未決で、"
-          "そもそも収集運搬許可の要否がスキーム設計に依存する — kyoninka の"
-          ":legal-questions が行政書士確認事項として保持している。")
+     (str "施行令6条の2が委託者側に課す基準を満たすこと: 委託先が他人の産廃運搬を"
+          "業として行える者で、**委託しようとする産廃の運搬がその事業の範囲に"
+          "含まれる**こと（1号）、および**委託契約を書面で行い**、種類・数量・"
+          "運搬の最終目的地等の条項を含めること（4号）。"
+          "なお ITAD の宅配回収では『廃棄物該当性』（買取リユース＝古物商の範囲 / "
+          "廃棄物＝廃掃法の範囲）自体が未決で、そもそも収集運搬許可の要否が"
+          "スキーム設計に依存する — kyoninka の :legal-questions が行政書士確認"
+          "事項として保持している。")
      :licensee-requirements
      #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
-       :req/not-expired :req/written-contract}}
+       :req/not-expired :req/written-contract}
+     :licensee-requirement-basis
+     {:req/scope-covers "jpn.haiki-rei-6-2"
+      :req/written-contract "jpn.haiki-rei-6-2"}}
 
     :known-gaps
-    ["委託基準（第12条第5項〜、施行令第6条の2）の条文原文が未取得"
+    ["マニフェスト（産業廃棄物管理票、法12条の3）の条文が未取得"
      "標準処理期間が東京都公式ページに記載なし（第三者情報の約60日は未確認）"
      "14条2項の「政令で定める期間」の具体値が未確認（五年を下らない、とのみ確認）"
      "廃棄物該当性（ITAD 宅配回収スキーム）が未決 — 14条1項但書のどちら側に立つかを決める問い"]}
@@ -562,6 +597,25 @@
            "**要許可業種は政令が定め、施設基準は都道府県の条例が定める**"
            "（厚労省令を参酌）。したがって施設基準には構造的に自治体差がある —"
            "全国一律の基準を前提に設計してはならない。")}
+     {:rule/id "jpn.shokuhin-eisei-rei-35"
+      :rule/title "食品衛生法施行令 第35条（営業の指定）"
+      :rule/instrument "食品衛生法施行令（昭和28年政令第229号）"
+      :rule/quote
+      (str "法第五十四条の規定により都道府県が施設についての基準を定めるべき営業は、"
+           "次のとおりとする。一 飲食店営業……十一 菓子製造業（菓子（パン及びあん類を"
+           "含む。）を製造する営業をいい、第二十六号又は第二十八号に該当するものを除く。）"
+           "……")
+      :rule/url "https://laws.e-gov.go.jp/api/1/lawdata/昭和二十八年政令第二百二十九号"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      "e-Gov 法令 API（lawdata）で施行令全文を取得し、第35条を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "54条が委ねていた政令の実物。**要許可32業種はここで指定されている**。"
+           "各号が単なる名称ではなく定義を伴う点が重要 —— 例えば11号 菓子製造業は"
+           "パン及びあん類を含み、26号（複合型そうざい製造業）・28号（複合型冷凍食品"
+           "製造業）に該当するものを除く。業種名だけで自分の業態を当てはめると外す。")}
      {:rule/id "jpn.shokuhin-eisei-ho-57"
       :rule/title "食品衛生法 第57条（営業の届出）"
       :rule/instrument "食品衛生法（昭和22年法律第233号）"
@@ -583,6 +637,7 @@
     :route/principal
     {:verdict :conditional
      :basis ["jpn.shokuhin-eisei-ho-55" "jpn.shokuhin-eisei-ho-54"
+             "jpn.shokuhin-eisei-rei-35"
              "jpn.tokyo-shokuhin-kyoka-list" "jpn.tokyo-shokuhin-window"]
      :condition
      (str "該当する要許可業種について保健所の営業許可を受けていること。法人で取得"
@@ -604,7 +659,7 @@
        :req/written-contract}}
 
     :known-gaps
-    ["54条が委ねる政令（要許可業種の指定）と各自治体の条例（施設基準の具体値）が未取得"
+    ["各自治体の条例（施設基準の具体値）が未取得 —— 施行令35条は取得済み"
      "許可手数料額が未確認（自治体差がある）"
      "57条が除外する『公衆衛生に与える影響が少ない営業で政令で定めるもの』の範囲が未確認"
      "酒税法の製造免許は未収載 — 21 酒類製造業を扱うなら別途調査が要る"]}
@@ -1044,7 +1099,37 @@
       :rule/retrieved-at "2026-07-26"
       :rule/summary
       (str "収集運搬（1項）と対になる別許可。但書の適用除外も同じ3類型。"
-           "7項により五年を下らない政令期間ごとの更新を要する。")}]
+           "7項により五年を下らない政令期間ごとの更新を要する。")}
+     {:rule/id "jpn.haiki-rei-6-2"
+      :rule/title "廃棄物処理法施行令 第6条の2（事業者の産業廃棄物の運搬、処分等の委託の基準）"
+      :rule/instrument "廃棄物の処理及び清掃に関する法律施行令（昭和46年政令第300号）"
+      :rule/quote
+      (str "法第十二条第六項の政令で定める基準は、次のとおりとする。"
+           "一 産業廃棄物…の運搬にあつては、他人の産業廃棄物の運搬を業として行うことが"
+           "できる者であつて**委託しようとする産業廃棄物の運搬がその事業の範囲に含まれる**"
+           "ものに委託すること。"
+           "二 産業廃棄物の処分又は再生にあつては、他人の産業廃棄物の処分又は再生を業として"
+           "行うことができる者であつて委託しようとする産業廃棄物の処分又は再生が"
+           "その事業の範囲に含まれるものに委託すること。……"
+           "四 **委託契約は、書面により行い**、当該委託契約書には、次に掲げる事項に"
+           "ついての条項が含まれ、かつ、環境省令で定める書面が添付されていること。"
+           "イ 委託する産業廃棄物の種類及び数量　"
+           "ロ 産業廃棄物の運搬を委託するときは、運搬の最終目的地の所在地　"
+           "ハ 産業廃棄物の処分又は再生を委託するときは、その処分又は再生の場所の所在地、"
+           "その処分又は再生の方法及びその処分又は再生に係る施設の処理能力……")
+      :rule/url "https://laws.e-gov.go.jp/api/1/lawdata/昭和四十六年政令第三百号"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      "e-Gov 法令 API（lawdata）で施行令全文を取得し、第6条の2を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**この commons の licensee-requirements のうち2つに、初めて実定法の"
+           "明文根拠がついた**: 1号・2号が『委託しようとする産廃の運搬／処分が"
+           "その事業の範囲に含まれる』ことを要求しており `:req/scope-covers` そのもの、"
+           "4号が『委託契約は書面により行い』と定めていて `:req/written-contract` そのもの。"
+           "許可を持っているだけでは足りず、**その許可の事業範囲が当該廃棄物を"
+           "カバーしていること**が委託者側の義務として課される。")}]
 
     :route/principal
     {:verdict :conditional
@@ -1058,15 +1143,19 @@
     {:verdict :conditional
      :basis ["jpn.haikibutsu-ho-14-6"]
      :condition
-     (str "許可を持つ処分業者に委託し、自社は受発注・トレーサビリティの"
-          "ops 層に徹すること。委託基準（12条5項〜、マニフェスト）は未取得のため"
-          "運営者の宣誓を要する。")
+     (str "許可を持つ処分業者に委託し、自社は受発注・トレーサビリティの ops 層に"
+          "徹すること。施行令6条の2の2号が『委託しようとする産廃の処分又は再生が"
+          "その事業の範囲に含まれる』者への委託を要求し、4号が書面契約と"
+          "処分の場所・方法・**施設の処理能力**の記載を要求する。")
      :licensee-requirements
      #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
-       :req/not-expired :req/written-contract}}
+       :req/not-expired :req/written-contract}
+     :licensee-requirement-basis
+     {:req/scope-covers "jpn.haiki-rei-6-2"
+      :req/written-contract "jpn.haiki-rei-6-2"}}
 
     :known-gaps
-    ["委託基準（第12条第5項〜、施行令第6条の2）の条文原文が未取得"
+    ["マニフェスト（産業廃棄物管理票、法12条の3）の条文が未取得"
      "14条7項の「政令で定める期間」の具体値が未確認"
      "中間処理と最終処分の区分・それぞれの許可要否が未整理"]}
 
@@ -1124,15 +1213,36 @@
       :rule/retrieved-at "2026-07-26"
       :rule/summary
       (str "登録を要しない事業者も届出は必要。**『登録不要＝規制外』ではない**という"
-           "この分野の落とし穴を条文が明示している。")}]
+           "この分野の落とし穴を条文が明示している。")}
+     {:rule/id "jpn.denki-kisoku-3"
+      :rule/title "電気通信事業法施行規則 第3条（登録を要しない電気通信事業）"
+      :rule/instrument "電気通信事業法施行規則（昭和60年郵政省令第25号）"
+      :rule/quote
+      (str "法第九条第一号の総務省令で定める基準は、設置する電気通信回線設備が"
+           "次の各号のいずれにも該当することとする。"
+           "一 端末系伝送路設備…の設置の区域が**一の市町村（特別区を含む。）の区域**"
+           "（…指定都市…にあつてはその区又は総合区の区域）を超えないこと。"
+           "二 中継系伝送路設備…の設置の区間が**一の都道府県の区域**を超えないこと。")
+      :rule/url "https://laws.e-gov.go.jp/api/1/lawdata/昭和六十年郵政省令第二十五号"
+      :rule/url-provenance :official-legislation-api
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      "e-Gov 法令 API（lawdata、約20MB）で施行規則全文を取得し、第3条を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "9条但書1号が委ねていた閾値の実物。**両号ともに該当する場合に限り登録不要**。"
+           "回線設備を自ら設置しない事業者は当然この基準内なので届出側に落ちる。"
+           "2項は区域変更で基準を外れた場合の6か月の猶予を定める。")}]
 
     :route/principal
     {:verdict :conditional
-     :basis ["jpn.denki-tsushin-ho-9" "jpn.denki-tsushin-ho-16"]
+     :basis ["jpn.denki-tsushin-ho-9" "jpn.denki-tsushin-ho-16" "jpn.denki-kisoku-3"]
      :condition
-     (str "回線設備の規模・区域が総務省令の基準を超えるなら9条の登録、"
-          "超えないなら16条の届出。**いずれにせよ何もしないで済む道は無い。**"
-          "閾値は総務省令にあり未取得なので、どちらに落ちるかは要一次確認。")}
+     (str "施行規則3条の閾値で分岐する: 端末系伝送路設備の設置区域が**一の市町村**"
+          "（指定都市では区）を超えず、かつ中継系伝送路設備の設置区間が**一の都道府県**"
+          "を超えないなら登録不要で、16条の届出で足りる。超えるなら9条の登録。"
+          "**回線設備を自ら設置しないサービス（クラウド・アプリ）は当然この基準内**に"
+          "収まるので、実務上は届出側に落ちる —— ただし届出は免れない。")}
 
     :route/defer
     {:verdict :unsettled
@@ -1146,7 +1256,6 @@
 
     :known-gaps
     ["電気通信事業法 第2条（定義）の条文原文が未取得 —— defer の境界がここで決まる"
-     "9条但書1号の閾値を定める総務省令が未取得"
      "第三号事業・基礎的電気通信役務の区分が未整理"]}
 
    ;; -----------------------------------------------------------------------
@@ -1366,12 +1475,20 @@
       :covered (count have)
       :covered-keys (vec have)
       :missing-keys (vec missing)
+      ;; 地方の層は国のルールを継承するので、`:rule-count` は同じ条文を
+      ;; 複数回数える。`:distinct-rule-count` が実際に収録した条文の数。
       :rule-count (count rs)
+      :distinct-rule-count (count (distinct (map :rule/id rs)))
       :rules-by-verification (frequencies (map :rule/verification rs))
+      :distinct-rules-by-verification
+      (frequencies (map :rule/verification
+                        (vals (into {} (map (juxt :rule/id identity) rs)))))
       :known-gaps (into {} (for [[j s] all
                                  :let [g (known-gaps j s)]
                                  :when (seq g)]
                              [[j s] g]))
       :note
-      (str "収録 " (count all) " 件（(法域, 業種)の組）・" (count rs) " ルール。"
+      (str "収録 " (count all) " 件（(法域, 業種)の組）・"
+           (count (distinct (map :rule/id rs))) " ルール"
+           "（継承分を含む延べ " (count rs) "）。"
            "未収載の組について gate はいかなる経路も成立と判定しない。")})))
