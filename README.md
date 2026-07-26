@@ -7,7 +7,7 @@
 StageGraph も台帳も持たない。何も申請せず、許認可も持たず、官庁にも接触しない。
 呼び出し側 actor の governor が結果を見て自分で HOLD/escalate/commit を決める。
 
-**48 tests / 406 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**51 tests / 476 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -43,7 +43,7 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
 | warehousing | 倉庫業の登録 | 可 | **2** | `:conditional` | `:conditional` |
 | employment-placement | 有料職業紹介事業の許可 | 可 | 1 | `:conditional` | `:conditional` |
 | real-estate-brokerage | 宅地建物取引業の免許 | 可 | 1 | `:conditional` | `:conditional` |
-| travel-agency | 旅行業の登録 | 可 | 1 | `:conditional` | `:unsettled` |
+| travel-agency | 旅行業の登録 | 可 | 1 | `:conditional` | `:conditional` |
 
 `:conditional` は「カタログが検証できない事実（許認可を実際に持っているか等）に
 かかっている」の意味で、運営者の宣誓（attestation）でのみ解錠する。`:unsettled`
@@ -123,7 +123,7 @@ cloud-itonami の実装済み actor 177 本の大半は、日本では**自社�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **9件（法域×業種）・21ルール**。うち **17 が条文原文の読了**（`:primary-source-read`）、
+現在: **9件（法域×業種）・27ルール**。うち **23 が条文原文の読了**（`:primary-source-read`）、
 4 が公式ページの取得（`:official-url-retrieved`）で、**二次情報のみに依拠したルールは
 ゼロ**です。条文は e-Gov 法令 API（`/api/1/articles`）から取得しました — 法令検索の
 Web ページは JavaScript レンダリングで読めませんが、API は XML を直接返します。
@@ -133,37 +133,42 @@ Web ページは JavaScript レンダリングで読めませんが、API は XM
 `medical-practice` は isic-862/869、`employment-placement` は isic-7810、
 `real-estate-brokerage` は isic-6820、`travel-agency` は isic-7911。
 
-日本の許認可業種は数百あり、これは9件にすぎません。各エントリは `:known-gaps` で
-何を確認していないかを名指ししています（多くは定義条文の周辺 — 例えば宅建業法2条の
-「宅地建物取引業」の定義は未取得で、媒介・代理の境界はそこで決まります）。
+### 境界を決めるのは定義条文だった
 
-### 条文を入れて動いた判定
+**定義条文を全部入れた結果、カタログから `:unsettled` が消えました。** 各業種の
+「どこからが規制業か」は、許可条文ではなく定義条文が決めていたからです。
 
-原文取得の前後で3件の verdict が変わりました。どれも定義条文が境界を決めていた
-ケースです。
+| 業種 | 定義条文が置いた境界 |
+|---|---|
+| second-hand-dealing | 古物営業法2条2項。3条は1号・2号だけを許可対象にし、3号（競りあつせん業）を含まない |
+| warehousing | 倉庫業法2条2項。「**寄託を受けた**物品の保管」— 寄託の当事者にならなければ外 |
+| real-estate-brokerage | 宅建業法2条2号。**媒介が明文で入る** — 自己が当事者でなくとも媒介すれば免許が要る |
+| employment-placement | 職安法4条。「あつせん」＋**いかなる名義でも手数料を受けるか**で有料／無料が決まる |
+| travel-agency | 旅行業法2条1項。柱書が「**報酬を得て**」、3号・4号が代理・媒介・取次ぎを広く捕捉 |
 
-- **second-hand-dealing の defer**: `:unsettled` → `:conditional`。古物営業法3条は
-  2条2項の**1号・2号だけ**を許可対象にしており、3号（古物競りあつせん業）を含んで
-  いない。自社が売買・交換の当事者にならなければ3条は及ばない、と条文から読めます。
-- **warehousing の defer**: `:unsettled` → `:conditional`。倉庫業法2条2項が
-  「**寄託を受けた**物品の倉庫における保管を行う営業」と定義しているので、
-  寄託の当事者にならなければ登録義務の外に立ちます。
-- **industrial-waste-collection**: 14条1項に**但書**があり、
-  「事業者（自らその産業廃棄物を運搬する場合に限る。）」は許可が要りません。
-  ITAD にとってこれは決定的で、顧客の PC を引き取るなら排出事業者は顧客であって
-  自社ではないため但書に乗れない。kyoninka が保持する「廃棄物該当性」の論点は、
-  この但書のどちら側に立つかを決める問いそのものでした。`:licence/exemptions` に
-  data として持たせています。
+このうち **real-estate-brokerage と travel-agency は境界が厳しい側**に出ました。
+どちらも「媒介」が明文で規制対象なので、取引当事者や旅行者を引き合わせる機能を
+持たせた瞬間に免許・登録の側へ倒れます。成立しうるのは免許業者の**内部業務**向けに
+システムを提供する位置だけです。
 
-逆に **travel-agency の defer は `:unsettled` のまま**です。旅行業法3条は
-「旅行業**又は旅行業者代理業**を営もうとする者」を登録対象にしており、
-他社商品の代理販売まで捕捉する。他業種の「主体にならなければ規制外」という
-構図が通用しない唯一の収録業種で、2条の定義を取るまで開けません。
+逆に **industrial-waste-collection には但書**があり、自ら排出した産廃を自ら運ぶ
+排出事業者には許可が要りません（14条1項）。ITAD にとってこれは不利な発見で、
+顧客の PC を引き取るなら排出事業者は顧客であって自社ではないため但書に乗れません。
+`:licence/exemptions` として data 化してあります。
+
+**medical-practice の委譲は医療法54条（医療法人は剰余金の配当をしてはならない）が
+直接縛ります** — 医療法人を主体に立てても、そこから利益を取り出す設計自体に
+制約がかかる。業務委託料が実質的な配当と評価されない水準・算定根拠が要ります。
+
+日本の許認可業種は数百あり、これは9件にすぎません。残る穴の多くは条文の外側 —
+省令・条例・通達（例: 食品衛生法の施設基準は54条により**都道府県の条例**が定めるので
+構造的に自治体差がある）と、「媒介」「医業」の外延を示す判例・通達です。
+各エントリの `:known-gaps` が名指ししています。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 48 tests / 406 assertions
+clojure -M:test   # 51 tests / 476 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

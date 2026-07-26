@@ -37,8 +37,12 @@
         ":conditional は宣誓で解錠できる")
     (is (false? (gate/open-with? "JPN" :sector/legal-services :route/principal att))
         ":prohibited は宣誓で解錠できない")
-    (is (false? (gate/open-with? "JPN" :sector/travel-agency :route/defer att))
-        ":unsettled は宣誓で解錠できない")))
+    (testing ":unsettled は宣誓で解錠できない（現カタログに :unsettled は残っていないので合成する）"
+      (with-redefs [cat/catalog
+                    (assoc-in cat/catalog
+                              [["JPN" :sector/travel-agency] :route/defer]
+                              {:verdict :unsettled :basis [] :condition "未調査"})]
+        (is (false? (gate/open-with? "JPN" :sector/travel-agency :route/defer att)))))))
 
 (deftest secondary-only-permissions-are-downgraded
   (testing "カタログに現在 secondary-only ルールが無くても、降格機構自体は生きている"
@@ -200,13 +204,53 @@
         (is (= :blocked (:route p)))
         (is (contains? (set (map :rule (:blockers p))) :req/written-contract))))))
 
-(deftest travel-agency-has-no-easy-deferral
-  (testing "旅行業法3条は旅行業者代理業まで登録対象にしているので、委譲の逃げ道が狭い"
-    (is (= :unsettled (:verdict (gate/verdict-for "JPN" :sector/travel-agency :route/defer))))
-    (is (false? (gate/open-with? "JPN" :sector/travel-agency :route/defer #{:route/defer}))
-        "宣誓では解錠できない")
-    (let [r (cat/rule "JPN" :sector/travel-agency "jpn.ryokogyo-ho-3")]
-      (is (re-find #"旅行業者代理業" (:rule/quote r))))))
+(deftest travel-agency-deferral-is-narrow-but-decidable
+  (testing "2条1項の柱書「報酬を得て」＋各号の限定で境界が決まる"
+    (is (= :conditional (:verdict (gate/verdict-for "JPN" :sector/travel-agency :route/defer))))
+    (let [r (cat/rule "JPN" :sector/travel-agency "jpn.ryokogyo-ho-2")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"報酬を得て" (:rule/quote r)))
+      (is (re-find #"媒介" (:rule/quote r)) "3号・4号の媒介が引用に含まれること"))
+    (is (re-find #"内部業務"
+                 (:condition (gate/verdict-for "JPN" :sector/travel-agency :route/defer)))
+        "旅行者にも提供者にも向かない位置にとどまる、という条件が明示されること"))
+  (testing "3条は代理業まで登録対象にしている"
+    (is (re-find #"旅行業者代理業"
+                 (:rule/quote (cat/rule "JPN" :sector/travel-agency "jpn.ryokogyo-ho-3"))))))
+
+(deftest definition-articles-decide-the-deferral-boundaries
+  (testing "どの業種でも『どこからが規制業か』は定義条文が決めている"
+    (doseq [[sector rule-id needle] [[:sector/real-estate-brokerage "jpn.takken-ho-2" #"媒介"]
+                                     [:sector/employment-placement "jpn.shokugyo-anteiho-4" #"あつせん"]
+                                     [:sector/warehousing "jpn.soukogyo-ho-2" #"寄託を受けた"]
+                                     [:sector/second-hand-dealing "jpn.kobutsu-eigyo-ho-2" #"売買"]
+                                     [:sector/travel-agency "jpn.ryokogyo-ho-2" #"報酬を得て"]]]
+      (let [r (cat/rule "JPN" sector rule-id)]
+        (is (some? r) (str rule-id " が無い"))
+        (is (= :primary-source-read (:rule/verification r)))
+        (is (re-find needle (:rule/quote r))
+            (str rule-id " の引用に境界語 " needle " が無い"))
+        (is (contains? (set (get-in (cat/entry "JPN" sector) [:route/defer :basis])) rule-id)
+            (str sector " の defer が定義条文を根拠に挙げていない"))))))
+
+(deftest employment-placement-turns-on-taking-a-fee
+  (testing "職安法4条 — 有料／無料の別はいかなる名義でも手数料を受けるかで決まる"
+    (let [r (cat/rule "JPN" :sector/employment-placement "jpn.shokugyo-anteiho-4")]
+      (is (re-find #"いかなる名義でも" (:rule/quote r)))
+      (is (re-find #"手数料又は報酬を受けないで" (:rule/quote r))))
+    (is (re-find #"無料の職業紹介"
+                 (:condition (gate/verdict-for "JPN" :sector/employment-placement :route/defer))))))
+
+(deftest medical-deferral-is-bounded-by-the-dividend-ban
+  (testing "医療法54条は委譲先から利益を取り出す設計そのものを縛る"
+    (let [r (cat/rule "JPN" :sector/medical-practice "jpn.iryo-ho-54")]
+      (is (= "医療法人は、剰余金の配当をしてはならない。" (:rule/quote r)))
+      (is (= :primary-source-read (:rule/verification r))))
+    (is (re-find #"剰余金"
+                 (:condition (gate/verdict-for "JPN" :sector/medical-practice :route/defer))))
+    (is (contains? (set (get-in (cat/entry "JPN" :sector/medical-practice)
+                                [:route/principal :basis]))
+                   "jpn.iryo-ho-54"))))
 
 (deftest waste-collection-exposes-the-self-transport-exemption
   (testing "廃掃法14条1項但書 — 自ら排出した産廃を自ら運ぶ排出事業者には許可が要らない"
