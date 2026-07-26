@@ -44,19 +44,37 @@
     (is (contains? cat/verdicts (:verdict e))
         (str jid "/" sector "/" route " の verdict が語彙外"))))
 
-(deftest sub-national-layers-inherit-rather-than-duplicate
-  (testing "地方の層は国の層を継承する — 47都道府県ぶん複製しない"
-    (doseq [[jid sector] (sub-national-keys)]
+(deftest overlay-layers-inherit-rather-than-duplicate
+  (testing ":overlay は国の層を継承する — 47都道府県ぶん複製しない"
+    (doseq [[jid sector] (sub-national-keys)
+            :when (= :overlay (cat/sub-national-kind jid sector))]
       (let [nat (cat/parent-jurisdiction jid)
             resolved (cat/entry jid sector)]
         (is (some? (cat/raw-entry nat sector))
-            (str jid " の親 " nat " に " sector " が無い（孤児の地方層）"))
+            (str jid " は :overlay なのに親 " nat " に " sector " が無い（孤児の地方層）"))
         (is (= nat (:inherited-from resolved)))
         (is (some? (get resolved :route/principal))
             "継承後は route が揃うこと")
         (is (>= (count (:rules resolved))
                 (count (cat/rules nat sector)))
             "国の層のルールを失わないこと")))))
+
+(deftest exclusive-layers-stand-alone
+  (testing ":exclusive は国の層が存在しない — 立法権が地方に専属する事項"
+    (let [ex (filter #(= :exclusive (apply cat/sub-national-kind %)) (sub-national-keys))]
+      (is (seq ex) "少なくとも1件は :exclusive があること（CAN-ON）")
+      (doseq [[jid sector] ex]
+        (is (nil? (cat/raw-entry (cat/parent-jurisdiction jid) sector))
+            (str jid "/" sector " は :exclusive なのに親の層がある —— :overlay の間違いでは"))
+        (let [e (cat/entry jid sector)]
+          (is (some? (get e :route/principal)) "単独で route が揃っていること")
+          (is (nil? (:inherited-from e)) "継承元を持たないこと")
+          (is (seq (:rules e)) "自前のルールを持つこと"))))))
+
+(deftest every-sub-national-layer-declares-its-kind
+  (doseq [[jid sector] (sub-national-keys)]
+    (is (contains? cat/sub-national-kinds (cat/sub-national-kind jid sector))
+        (str jid "/" sector " の sub-national-kind が語彙外"))))
 
 (deftest sub-national-layers-may-only-tighten
   (testing "条例・規則は法律が禁じたことを適法にできない"

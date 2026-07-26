@@ -30,11 +30,12 @@
          ["JPN-13" :sector/industrial-waste-collection]
          ["JPN-13" :sector/food-manufacture]
          ["JPN-13" :sector/second-hand-dealing]]
-  :rules 47  ; 異なるルール数
-  :verification {:primary-source-read 42 :official-url-retrieved 5 :secondary-source-only 0}
-  :jurisdictions ["JPN" "JPN-13" "GBR" "DEU"]
+  :rules 51  ; 異なるルール数
+  :verification {:primary-source-read 46 :official-url-retrieved 5 :secondary-source-only 0}
+  :jurisdictions ["JPN" "JPN-13" "GBR" "DEU" "FRA" "CAN-ON"]
   :cross-jurisdiction "入口の作りは4型: prior-authorisation / negative-licensing / prohibition-with-registration-exceptions / reserved-activities-only"
   :supranational "EU 役務指令は加盟国を縛るので verdict に混ぜない。:supranational-constraints として verdict の外に置く。"
+  :sub-national-kinds "地方層は :overlay（国法＋上乗せ、JPN-13）と :exclusive（立法権が地方に専属、CAN-ON）の2種"
   :requirement-basis "廃掃法施行令6条の2 が :req/scope-covers と :req/written-contract に明文根拠を与える"
   :sub-national "ISO 3166-2 形の id で国の層を継承。地方の層は締める方向にしか動けない。"
   :unsettled-routes 0

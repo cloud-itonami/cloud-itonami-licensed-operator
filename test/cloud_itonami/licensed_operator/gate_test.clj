@@ -335,7 +335,7 @@
   (testing "同じ経済活動でも、日本の事前免許に対して英国は事前免許なしのことがある"
     (let [rows (gate/compare-sector :sector/real-estate-brokerage)
           by-j (into {} (map (juxt :jurisdiction identity) rows))]
-      (is (= 3 (count rows)) "JPN・GBR・DEU の3法域に収録があること")
+      (is (= 4 (count rows)) "JPN・GBR・DEU・CAN-ON の4法域に収録があること")
       (is (= :prior-authorisation (:regime (get by-j "JPN"))))
       (is (= :negative-licensing (:regime (get by-j "GBR")))
           "英国 estate agency は事前免許でなく禁止命令による事後規律")
@@ -456,3 +456,43 @@
         (is (contains? cat/regimes
                        (get-in (cat/entry jid sector) [:licence :licence/regime]
                                :prior-authorisation)))))))
+
+(deftest ontario-licenses-two-tiers-inside-one-profession
+  (testing "26.1(1) が practise law と provide legal services を並べて禁じる"
+    (let [r (cat/rule "CAN-ON" :sector/legal-services "can-on.lsa-26-1")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"practise law in Ontario or provide legal services in Ontario"
+                   (:rule/quote r))))
+    (is (re-find #"paralegal"
+                 (get-in (cat/entry "CAN-ON" :sector/legal-services)
+                         [:licence :licence/note]))
+        "2段構造であることが記録されていること"))
+  (testing "罰金額まで一次で取れている"
+    (is (re-find #"\$25,000"
+                 (:rule/quote (cat/rule "CAN-ON" :sector/legal-services "can-on.lsa-26-2"))))))
+
+(deftest ontario-registration-requires-the-notice-not-the-application
+  (let [r (cat/rule "CAN-ON" :sector/real-estate-brokerage "can-on.trebba-6")]
+    (is (re-find #"until notified in writing by the registrar" (:rule/quote r))
+        "申請では足りず通知の到達が条件"))
+  (is (re-find #"申請済みでは足りない"
+               (:condition (gate/verdict-for "CAN-ON" :sector/real-estate-brokerage
+                                             :route/principal)))))
+
+(deftest france-requires-payment-and-repetition-in-the-offence-itself
+  (testing "art.54 は『à titre habituel et rémunéré』を構成要件に組み込む"
+    (let [r (cat/rule "FRA" :sector/legal-services "fra.loi-71-1130-art54")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"à titre habituel et rémunéré" (:rule/quote r))))
+    (is (false? (get-in (cat/entry "FRA" :sector/legal-services)
+                        [:licence :licence/obtainable-by-company?]))
+        "法人はこの資格を持てない")))
+
+(deftest eu-constraints-now-span-two-member-states
+  (testing "EU 層が単一法域の飾りでないこと"
+    (let [with-eu (filter (fn [[j s]] (seq (cat/supranational-constraints j s)))
+                          (cat/keys-covered))]
+      (is (<= 2 (count (distinct (map first with-eu))))
+          (str "EU 制約を持つ法域が2つ以上あること: " (pr-str (distinct (map first with-eu)))))
+      (is (contains? (set (map first with-eu)) "DEU"))
+      (is (contains? (set (map first with-eu)) "FRA")))))

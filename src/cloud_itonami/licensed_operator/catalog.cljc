@@ -2040,7 +2040,226 @@
     :known-gaps
     ["gefährliche Abfälle の定義（AVV / § 3 Abs. 5 KrWG）が未取得"
      "§53 の届出後の義務（Nachweisverordnung）が未収載"
-     "『Makler』の外延 —— ops 層がここに入るかの分岐点だが判例未収載"]}})
+     "『Makler』の外延 —— ops 層がここに入るかの分岐点だが判例未収載"]}
+
+   ;; =======================================================================
+   ;; France。EU 加盟国の2つ目 —— :supranational-constraints が単一法域の
+   ;; 飾りでなくなる。
+   ;; =======================================================================
+   ["FRA" :sector/legal-services]
+   {:jurisdiction "FRA"
+    :sector :sector/legal-services
+    :licence
+    {:licence/name "art.54 の資格要件（法学士 or 適切な法的能力）"
+     :licence/law "Loi n° 71-1130 du 31 décembre 1971, art. 54"
+     :licence/authority "各職域の規律機関（avocat は barreau）"
+     :licence/obtainable-by-company? false
+     :licence/regime :prohibition-with-registration-exceptions
+     :licence/note
+     (str "ドイツと同じ『原則禁止＋例外』型だが、例外の切り方が違う。"
+          "ドイツは能力**分野**別の登録（Inkasso 等）で開けるのに対し、"
+          "フランスは**人の資格**（法学士／適切な法的能力）と各職域の枠組みで開ける。"
+          "法人がこの資格を持つことはできない。")}
+    :rules
+    [{:rule/id "fra.loi-71-1130-art54"
+      :rule/title "Loi n° 71-1130 art. 54 — consultation juridique et rédaction d'actes"
+      :rule/instrument "Loi n° 71-1130 du 31 décembre 1971 portant réforme de certaines professions judiciaires et juridiques"
+      :rule/quote
+      (str "Nul ne peut, directement ou par personne interposée, à titre habituel et "
+           "rémunéré, donner des consultations juridiques ou rédiger des actes sous "
+           "seing privé, pour autrui : 1° S'il n'est titulaire d'une licence en droit ou "
+           "s'il ne justifie, à défaut, d'une compétence juridique appropriée à la "
+           "consultation et la rédaction d'actes en matière juridique …")
+      :rule/url "https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000039280601"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      (str "Légifrance の article_lc ページを取得して読了。"
+           "なお Légifrance は curl を 403 で拒否するため、取得は WebFetch 経由。")
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "構成要件は『**à titre habituel et rémunéré**（反復的かつ有償で）"
+           "他人のために法的助言を与え、又は私署証書を作成すること』。"
+           "**有償性と反復性が要件に組み込まれている**のが日独英と違う —— "
+           "無償・単発なら条文の外に出る余地が条文上ある。"
+           "avocat 等の規制職はこの能力を有するものとみなされ、"
+           "企業内法務は雇用会社およびそのグループのためにのみ行える。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["fra.loi-71-1130-art54"]
+     :condition
+     (str "運営者（自然人）が art.54 の資格要件を満たすこと。"
+          "**法人はこの資格を持てない**ので、日本の弁護士業と同じく"
+          "自社が名義人になる経路は実質的に閉じている。"
+          "ただし『à titre habituel et rémunéré』の要件を外す設計"
+          "（無償提供等）なら条文の射程外に出る余地がある。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["fra.loi-71-1130-art54"]
+     :condition
+     (str "avocat 等 art.54 の資格を有する者が助言・作成の主体となり、"
+          "自社は道具にとどまること。RIN（Règlement Intérieur National）の"
+          "報酬・démarchage 規律は未取得のため運営者の宣誓を要する。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/personally-decided}}
+
+    :supranational-constraints
+    [{:constraint/id :services-directive-authorisation
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-9"
+      :constraint/detail
+      (str "art.54 の資格要件は EU 役務指令9条の下で正当化・比例性を要する。"
+           "**事業者の義務を免除しない。**")}
+     {:constraint/id :services-directive-cross-border
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-16"
+      :constraint/detail
+      "他の加盟国に設立された提供者による越境提供には16条の保護が及びうる。"}]
+
+    :known-gaps
+    ["Règlement Intérieur National (RIN) が未取得"
+     "art.55-66 の各職域規定が未取得 —— どの職業がどこまで開くかはここで決まる"
+     "loi Hoguet（不動産仲介の carte professionnelle）は Légifrance の"
+     " 該当 LEGIARTI id を特定できず未収載"]}
+
+   ;; =======================================================================
+   ;; Canada — Ontario。ここで**地方層の前提が崩れる**。
+   ;; カナダでは法律サービスも不動産業も州の専属管轄で、対応する連邦法が
+   ;; 存在しない。JPN-13 のような「国の法律＋地方の上乗せ」ではなく、
+   ;; 州法がそれ自体で全部である（:exclusive）。
+   ;; =======================================================================
+   ["CAN-ON" :sector/legal-services]
+   {:jurisdiction "CAN-ON"
+    :sector :sector/legal-services
+    :sub-national-kind :exclusive
+    :licence
+    {:licence/name "Law Society of Ontario の licence（弁護士 / paralegal の2種）"
+     :licence/law "Law Society Act, R.S.O. 1990, c. L.8, s. 26.1"
+     :licence/authority "Law Society of Ontario"
+     :licence/obtainable-by-company? false
+     :licence/regime :prior-authorisation
+     :licence/note
+     (str "**カナダで唯一 paralegal を免許制で規律する州**。"
+          "26.1(1) が『practise law』と『provide legal services』を並べて禁じ、"
+          "前者は弁護士、後者は paralegal にも開かれる —— "
+          "**一つの職業内に2段の免許がある**のは収録法域で Ontario だけ。"
+          "これは日本の弁護士／司法書士／行政書士のような別資格の並立とも、"
+          "英国の留保業務の限定列挙とも違う。")}
+    :rules
+    [{:rule/id "can-on.lsa-26-1"
+      :rule/title "Law Society Act (Ontario) s. 26.1 — Prohibitions"
+      :rule/instrument "Law Society Act, R.S.O. 1990, c. L.8"
+      :rule/quote
+      (str "26.1 (1) Subject to subsection (5), no person, other than a licensee whose "
+           "licence is not suspended, shall practise law in Ontario or provide legal "
+           "services in Ontario. 2006, c. 21, Sched. C, s. 22.")
+      :rule/url "https://www.ontario.ca/laws/statute/90l08"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      (str "Ontario e-Laws の HTML を取得し、`<p class=\"section\">` 単位で "
+           "s.26.1(1) を抽出して読了。なお e-Laws は WebFetch では本文が取れず"
+           "（JS レンダリング）、curl で取得した生 HTML から抽出した。")
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**『practise law』と『provide legal services』が別建てで並ぶ**のが要点。"
+           "Ontario は後者を paralegal に開放しており、"
+           "一つの禁止条文の中に2段の免許構造が入っている。")}
+     {:rule/id "can-on.lsa-26-2"
+      :rule/title "Law Society Act (Ontario) s. 26.2 — Offences"
+      :rule/instrument "Law Society Act, R.S.O. 1990, c. L.8"
+      :rule/quote
+      (str "26.2 (1) Every person who contravenes section 26.1 is guilty of an offence "
+           "and on conviction is liable to a fine of, (a) not more than $25,000 for a "
+           "first offence; and (b) not more than $50,000 for each subsequent offence.")
+      :rule/url "https://www.ontario.ca/laws/statute/90l08"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "同 HTML から s.26.2(1) を抽出して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary "初犯 25,000 カナダドル以下、再犯は各回 50,000 カナダドル以下の罰金。"}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["can-on.lsa-26-1" "can-on.lsa-26-2"]
+     :condition
+     (str "Law Society of Ontario の licence を保持していること。"
+          "**paralegal licence でも『provide legal services』は開く**ので、"
+          "弁護士資格が唯一の入口ではない —— 日本と違い、法人でない自然人が"
+          "より低い階梯から合法的に入れる。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["can-on.lsa-26-1"]
+     :condition
+     (str "licensee（弁護士または paralegal）が主体となり、自社は"
+          "『practise law』にも『provide legal services』にも当たらない位置に"
+          "とどまること。後者の外延は Law Society の by-law 側にあり未取得。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/personally-decided}}
+
+    :known-gaps
+    ["『provide legal services』の定義（by-law 4 等）が未取得 —— defer の境界"
+     "s.26.1(5) の適用除外が未取得"
+     "他州（BC・Alberta 等）は未収載。カナダは州ごとに別制度"]}
+
+   ["CAN-ON" :sector/real-estate-brokerage]
+   {:jurisdiction "CAN-ON"
+    :sector :sector/real-estate-brokerage
+    :sub-national-kind :exclusive
+    :licence
+    {:licence/name "registrar への登録（brokerage / broker / salesperson）"
+     :licence/law "Real Estate and Business Brokers Act, 2002, S.O. 2002, c. 30, Sched. C, s. 6"
+     :licence/authority "registrar（RECO）"
+     :licence/obtainable-by-company? true
+     :licence/regime :prior-authorisation
+     :licence/note
+     (str "**登録の書きぶりが他法域と違う**。単に『登録を受けなければならない』"
+          "ではなく『registrar から**書面で通知されるまで** trade してはならない』"
+          "—— 申請では足りず、登録完了の通知が着くまで営業できない。")}
+    :rules
+    [{:rule/id "can-on.trebba-6"
+      :rule/title "Real Estate and Business Brokers Act, 2002 s. 6 — registration required"
+      :rule/instrument "Real Estate and Business Brokers Act, 2002, S.O. 2002, c. 30, Sched. C"
+      :rule/quote
+      (str "6 Subject to subsection 14 (8), no brokerage, broker or salesperson shall "
+           "trade in real estate until notified in writing by the registrar that the "
+           "brokerage, broker or salesperson, as the case may be, is registered. "
+           "2002, c. 30, Sched. C, s. 6.")
+      :rule/url "https://www.ontario.ca/laws/statute/02r30"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      "Ontario e-Laws の HTML を curl で取得し、s.6 を抽出して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "『**until notified in writing by the registrar**』が特徴。"
+           "登録の申請中は営業できず、通知の到達が事業開始の条件になる。"
+           "日本の宅建業免許・独の Erlaubnis とも、英の免許不要とも違う"
+           "第4の運用感。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["can-on.trebba-6"]
+     :condition
+     (str "registrar からの**書面通知**を受けていること。申請済みでは足りない。"
+          "brokerage としては法人で登録できる。")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis []
+     :condition
+     (str "『trade in real estate』の定義（s.1）を取得できていないため、"
+          "自社が trade に当たらない位置にとどまれるかを判定しない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["s.1 の『trade』『trade in real estate』の定義が未取得 —— defer の境界"
+     "s.14(8) の例外が未取得"
+     "TRESA 2020 改正（2023年施行分）の反映状況が未確認"]}})
 
 ;; ---------------------------------------------------------------------------
 ;; Accessors
@@ -2057,6 +2276,21 @@
   (when (string? jid)
     (let [i (.indexOf ^String jid "-")]
       (when (pos? i) (subs jid 0 i)))))
+
+(def sub-national-kinds
+  "地方の層には2種類あり、継承の前提が違う。
+
+    :overlay
+      国の法律が本体で、地方はその上に手数料・施設基準・窓口を上乗せする
+      （JPN-13 東京都。廃掃法が本体、都が手数料と講習会を足す）。
+    :exclusive
+      その事項の立法権が地方にしか無く、**国の層が存在しない**
+      （CAN-ON。カナダでは法律サービスも不動産業も州の専属管轄で、
+       連邦法に対応物が無い）。
+
+  `entry` は親が無ければ地方の層をそのまま返すので機構は共通だが、
+  `:exclusive` を明示しないと『親を書き忘れた孤児』と区別できない。"
+  #{:overlay :exclusive})
 
 (def restrictiveness
   "How restrictive a verdict is. Used to enforce that a sub-national
@@ -2163,6 +2397,14 @@
   カタログとして別立てで持つ。"
   [jid sector]
   (get (entry jid sector) :additional-gates []))
+
+(defn sub-national-kind
+  "`:overlay`（国の法律の上乗せ）か `:exclusive`（地方に立法権が専属し、
+  国の層が存在しない）か。国の層には付かない。既定は `:overlay` —— 親が
+  在るのが普通で、無いほうを明示させる。"
+  [jid sector]
+  (when (parent-jurisdiction jid)
+    (get (raw-entry jid sector) :sub-national-kind :overlay)))
 
 (defn known-gaps [jid sector] (get (entry jid sector) :known-gaps []))
 
