@@ -1,0 +1,28 @@
+{:itonami.blueprint/id "cloud-itonami-licensed-operator"
+ :itonami.blueprint/name "Licensed-operator deferral gate — 許認可業種で有資格者の ops 層として動けるかの判定"
+ :itonami.blueprint/kind :technical-commons
+ :itonami.blueprint/domain :cross-cutting/regulatory-capacity
+ :itonami.blueprint/license "AGPL-3.0-or-later"
+ :itonami.blueprint/social-impact [:regulatory-transparency :compliance-cost-reduction]
+ :itonami.blueprint/governor nil
+ :itonami.blueprint/robotics false
+ :itonami.blueprint/required-technologies [:jurisdiction-fact-catalog]
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/wave 0
+ :itonami.blueprint/note
+ (str "plain library（regulatory-tracker と同型）。advisor / StateGraph / 台帳を"
+      "持たず、何も申請せず許認可も持たない。呼び出し側 actor の governor が"
+      "結果を見て HOLD/escalate/commit を決める。")
+ :itonami.blueprint/coverage
+ {:keys [["JPN" :sector/legal-services]
+         ["JPN" :sector/second-hand-dealing]
+         ["JPN" :sector/industrial-waste-collection]]
+  :rules 6
+  :verification {:primary-source-read 2 :official-url-retrieved 2 :secondary-source-only 2}
+  :note "未収載の (法域, 業種) は『規制が無い』ではなく『未調査』。gate は既定で拒否する。"}
+ :itonami.blueprint/related
+ {:legalsupport "cloud-itonami-isic-6910-legalsupport（この形の最初の実証。弁護士）"
+  :regulatory-tracker "cloud-itonami-regulatory-tracker（許認可を取る進行の管理。別の問い）"
+  :kyoninka "kotoba-lang/kyoninka（日本の許認可手続きの procedure-as-data。:next の行き先）"
+  :itad "gftdcojp/ai-gftd-itad（古物商・産廃の実ケース）"}
+ :itonami.blueprint/adr "com-junkawasaki/root 90-docs/adr/2607262000-licensed-operator-deferral-gate.edn"}
