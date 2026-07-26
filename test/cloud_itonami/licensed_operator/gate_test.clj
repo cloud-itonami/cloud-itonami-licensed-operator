@@ -330,3 +330,52 @@
                           :licence-held? true :attestations #{:route/principal}})]
         (is (= :principal (:route p)))
         (is (seq (:citations p)))))))
+
+(deftest england-regulates-the-same-activities-by-different-means
+  (testing "同じ経済活動でも、日本の事前免許に対して英国は事前免許なしのことがある"
+    (let [rows (gate/compare-sector :sector/real-estate-brokerage)
+          by-j (into {} (map (juxt :jurisdiction identity) rows))]
+      (is (= 2 (count rows)) "JPN と GBR の両方に収録があること")
+      (is (= :prior-authorisation (:regime (get by-j "JPN"))))
+      (is (= :negative-licensing (:regime (get by-j "GBR")))
+          "英国 estate agency は事前免許でなく禁止命令による事後規律")
+      (is (re-find #"免許" (:licence (get by-j "JPN"))))
+      (is (re-find #"事前免許なし" (:licence (get by-j "GBR"))))))
+  (testing "職業紹介も同じ対照"
+    (let [by-j (into {} (map (juxt :jurisdiction identity)
+                             (gate/compare-sector :sector/employment-placement)))]
+      (is (= :prior-authorisation (:regime (get by-j "JPN"))))
+      (is (= :negative-licensing (:regime (get by-j "GBR")))))))
+
+(deftest uk-waste-exemption-is-narrower-than-japans
+  (testing "自己運搬の除外: 日本は場所を問わず、英国は同一構内のみ"
+    (let [jp (map :exemption/id (get-in (cat/entry "JPN" :sector/industrial-waste-collection)
+                                        [:licence :licence/exemptions]))
+          gb (get-in (cat/entry "GBR" :sector/industrial-waste-collection)
+                     [:licence :licence/exemptions])]
+      (is (contains? (set jp) :own-waste-self-transport))
+      (is (contains? (set (map :exemption/id gb)) :same-premises))
+      (is (re-find #"日本の但書より狭い"
+                   (:exemption/detail (first (filter #(= :same-premises (:exemption/id %)) gb))))))
+    (let [r (cat/rule "GBR" :sector/industrial-waste-collection "gbr.copaa-1989-s1")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"within the same premises" (:rule/quote r))))))
+
+(deftest uk-licenses-scrap-metal-not-second-hand-goods-generally
+  (testing "英国は中古品全般でなく金属くずだけを免許制で捕まえる"
+    (let [r (cat/rule "GBR" :sector/scrap-metal-dealing "gbr.smda-2013-s1")]
+      (is (= :primary-source-read (:rule/verification r)))
+      (is (re-find #"No person may carry on business as a scrap metal dealer" (:rule/quote r))))
+    (is (nil? (cat/raw-entry "GBR" :sector/second-hand-dealing))
+        "一般の中古品取引を GBR に収録していない —— 不在の推認で :admissible を出さないため")
+    (is (re-find #"不在の推認"
+                 (first (filter #(re-find #"不在の推認" %)
+                                (cat/known-gaps "GBR" :sector/scrap-metal-dealing))))
+        "その不在が known-gap として名指しされていること")))
+
+(deftest compare-sector-is-consistent-with-verdicts
+  (doseq [sector (keys cat/sectors)
+          row (gate/compare-sector sector)]
+    (is (= (:principal row)
+           (:verdict (gate/verdict-for (:jurisdiction row) sector :route/principal))))
+    (is (contains? #{:prior-authorisation :negative-licensing} (:regime row)))))

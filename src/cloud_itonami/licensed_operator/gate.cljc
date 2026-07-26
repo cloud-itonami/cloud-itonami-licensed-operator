@@ -202,6 +202,29 @@
                {:action :none
                 :detail "この法域・業種では現時点でどちらの経路も開かない。"}))}))
 
+(defn compare-sector
+  "The same sector across every catalogued jurisdiction. This is what a
+  multi-jurisdiction catalog is for: it shows that the same economic
+  activity is regulated by structurally different means.
+
+  `:regime` surfaces `:licence/regime` where an entry declares one —
+  `:negative-licensing` marks the jurisdictions that impose no prior
+  authorisation and instead exclude bad actors after the fact, which is
+  a different world from a permit regime even when the underlying
+  activity is identical."
+  [sector]
+  (->> (cat/keys-covered)
+       (filter #(= sector (second %)))
+       (mapv (fn [[jid _]]
+               (let [e (cat/entry jid sector)]
+                 {:jurisdiction jid
+                  :licence (get-in e [:licence :licence/name])
+                  :law (get-in e [:licence :licence/law])
+                  :regime (get-in e [:licence :licence/regime] :prior-authorisation)
+                  :principal (:verdict (verdict-for jid sector :route/principal))
+                  :defer (:verdict (verdict-for jid sector :route/defer))
+                  :gates (count (all-gates jid sector))})))))
+
 (defn summary
   "Cross-sector rollup: which routes are open where. Useful for deciding
   what a fleet of actors can actually run in a given jurisdiction."

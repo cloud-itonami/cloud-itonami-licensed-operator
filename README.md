@@ -10,7 +10,7 @@ StateGraph も台帳も持たない。何も申請せず、許認可も持たず
 **consumer**: `cloud-itonami-isic-6910-legalsupport`（`licensee/verify` に
 reviewer 検査を委譲。抽出元でもある）。
 
-**62 tests / 755 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**66 tests / 925 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -157,45 +157,38 @@ id を置くと `entry` が親（`"JPN"`）から継承して解決します。�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **16件（法域×業種）・35の異なるルール**（継承分を含む延べ48）—— 国の層13業種 +
-東京都の層3件。うち **31 が条文原文の読了**（`:primary-source-read`）、4 が公式ページの
-取得（`:official-url-retrieved`）で、**二次情報のみに依拠したルールはゼロ**です。
-（地方の層は国のルールを継承するので延べ数は同じ条文を複数回数えます。`coverage` は
-`:rule-count` と `:distinct-rule-count` の両方を返します。）
-法律・政令・省令はすべて e-Gov 法令 API から取得しました —— `/api/1/articles` が
-条単位、`/api/1/lawdata` が法令全文（電気通信事業法施行規則は約20MB）を XML で返します。
+現在: **21件（法域×業種）・41の異なるルール** —— JPN 13業種 + JPN-13（東京都）3件 +
+GBR 5業種。うち **36 が条文原文の読了**（`:primary-source-read`）、5 が公式ページの
+取得で、**二次情報のみに依拠したルールはゼロ**です。
 
-収録業種は cloud-itonami に実装済み actor が載っているところを優先しました:
-`food-manufacture` は isic-1071/1073/1074/1075/1020/562、`alcohol-manufacture` は
-isic-1101、`waste-disposal` は isic-3821、`warehousing` は jsic-4721、
-`medical-practice` は isic-862/869、`employment-placement` は isic-7810、
-`real-estate-brokerage` は isic-6820、`travel-agency` は isic-7911、
-`telecom` は isic-6110/6120、`financial-instruments` は isic-6612。
+条文取得の経路は法域ごとに違います。日本は e-Gov 法令 API（`/api/1/articles` が条単位、
+`/api/1/lawdata` が全文）、英国は legislation.gov.uk（各条に `data.xml` が付く）。
+どちらも認証不要で XML を返します。ドイツ（gesetze-im-internet.de の XML）、EU
+（EUR-Lex CELLAR）、カナダ（laws-lois の XML）も到達可能なことは確認済みですが未収載です。
 
-### 要件に実定法の根拠が付いた
+### 同じ活動が、法域によって別の仕組みで規律されている
 
-`licensee-requirements` の6つは、これまで「委譲が成立するには常識的にこれが要る
-だろう」というカタログ作成者の判断でした。**廃掃法施行令6条の2 がそのうち2つに
-明文の根拠を与えます。**
+複数法域を持つ意味はここに出ます。`gate/compare-sector` が同一業種を横断で並べます。
 
-- 1号・2号「委託しようとする産業廃棄物の運搬（処分）が**その事業の範囲に含まれる**
-  ものに委託すること」→ `:req/scope-covers` そのもの
-- 4号「**委託契約は、書面により行い**、当該委託契約書には…条項が含まれ」
-  → `:req/written-contract` そのもの
+| 業種 | JPN | GBR |
+|---|---|---|
+| 不動産仲介 | 宅建業法3条の**免許**（5年更新・宅建士設置） | Estate Agents Act 1979 —— **事前免許なし**。s.3 の禁止命令で不適格者を事後排除 |
+| 職業紹介 | 職安法30条の**許可**（厚労大臣） | Employment Agencies Act 1973 s.1「Licences」は**廃止済み**。一般の紹介に事前免許なし |
+| 廃棄物運搬 | 廃掃法14条1項。**自ら排出した産廃を自ら運搬する事業者は場所を問わず除外** | COPAA 1989 s.1。除外は**同一構内の移動のみ** —— 自社の廃棄物でも構外に出れば登録が要る |
+| 中古品 | 古物営業法が中古品全般を包括的に捕捉 | 一般の中古品に免許はなく、**金属くずだけ** Scrap Metal Dealers Act 2013 s.1 が切り出す |
 
-**許可を持っているだけでは足りず、その許可の事業範囲が当該廃棄物をカバーして
-いることが委託者側の義務**として政令に書かれている。カタログは
-`:licensee-requirement-basis` でこの対応を持ち、テストが根拠 rule の実在と
-検証水準を確かめます。
+`:licence/regime` が `:prior-authorisation` か `:negative-licensing` かを持ちます。
+**同じ経済活動でも「参入時に許可を取る」世界と「不適格者を後から排除する」世界は
+別物**で、事業設計への含意がまったく違います。
 
-日本の許認可業種は数百、都道府県は47あり、これは16件にすぎません。残る穴は
-条例（自治体の例規集は e-Gov に無い）と、「媒介」「医業」の外延を示す判例です。
+日本の許認可業種は数百、都道府県は47、世界の法域は約200あり、これは21件にすぎません。
+残る穴は条例（自治体の例規集は API が無い）と、「媒介」「医業」の外延を示す判例です。
 各エントリの `:known-gaps` が名指ししています。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 62 tests / 755 assertions
+clojure -M:test   # 66 tests / 925 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

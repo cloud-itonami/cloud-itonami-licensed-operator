@@ -60,7 +60,9 @@
    :sector/telecom
    "電気通信事業（ISIC 6110/6120）"
    :sector/financial-instruments
-   "金融商品取引業（ISIC 6612）"})
+   "金融商品取引業（ISIC 6612）"
+   :sector/scrap-metal-dealing
+   "金属くず取引業 — 英国 Scrap Metal Dealers Act 2013 の免許対象（ISIC 4677/3830）"})
 
 (def routes
   {:route/principal
@@ -1349,7 +1351,318 @@
     {:licence/authority "東京都公安委員会"
      :licence/window "主たる営業所の所在地を管轄する警察署 生活安全課 防犯係（警視庁）"}
     :rules []
-    :known-gaps ["他の都道府県公安委員会の運用差は未収載（この層は東京都のみ）"]}})
+    :known-gaps ["他の都道府県公安委員会の運用差は未収載（この層は東京都のみ）"]}
+
+   ;; =======================================================================
+   ;; England & Wales。日本と**構造が違う**ことがこの層の価値。
+   ;; 同じ経済活動でも、日本が事前免許で規律するものを英国は事前免許なしで
+   ;; 規律している例が複数ある。
+   ;; =======================================================================
+   ["GBR" :sector/legal-services]
+   {:jurisdiction "GBR"
+    :sector :sector/legal-services
+    :licence
+    {:licence/name "authorised person の資格（留保法務活動を行う場合のみ）"
+     :licence/law "Legal Services Act 2007 s.12 / Schedule 2"
+     :licence/authority "各 approved regulator（SRA 等）"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "**留保されているのは6類型だけ**。それ以外の法的助言・書類作成・"
+          "紛争解決の代理は authorised person でなくとも行える。"
+          "日本が法律事務を包括的に留保するのと正反対の構造。")}
+    :rules
+    [{:rule/id "gbr.lsa-2007-sch2"
+      :rule/title "Legal Services Act 2007 s.12 / Schedule 2 — the reserved legal activities"
+      :rule/instrument "Legal Services Act 2007 (c.29)"
+      :rule/quote
+      (str "The reserved legal activities are: the exercise of a right of audience; "
+           "the conduct of litigation; reserved instrument activities; probate activities; "
+           "notarial activities; the administration of oaths.")
+      :rule/url "https://www.legislation.gov.uk/ukpga/2007/29/schedule/2"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "legislation.gov.uk の Schedule 2 本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "留保は6類型に限定列挙。これ以外は非留保で、誰でも行える。"
+           "不動産（reserved instrument activities）と相続（probate activities）は"
+           "留保側なので、その分野の書類生成は範囲から外すこと。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["gbr.lsa-2007-sch2"]
+     :condition
+     (str "6類型の留保活動に触れないこと。触れないなら**そもそも資格が要らない**"
+          "ので、日本と違い『名義人になれるか』が問題にならない。"
+          "非留保＝無規制ではなく、消費者保護法・広告規制は別途適用される。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["gbr.lsa-2007-sch2"]
+     :condition
+     (str "留保活動に触れる部分だけ authorised person に委ねること。"
+          "日本のように全体を弁護士の背後に置く必要はない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers}}
+
+    :known-gaps
+    ["SRA Standards and Regulations が未取得"
+     "スコットランド・北アイルランドは別法域で未収載"]}
+
+   ["GBR" :sector/real-estate-brokerage]
+   {:jurisdiction "GBR"
+    :sector :sector/real-estate-brokerage
+    :licence
+    {:licence/name "（事前免許なし）— 不適格者に対する禁止命令による事後規律"
+     :licence/law "Estate Agents Act 1979 s.1（適用範囲）/ s.3（禁止命令）"
+     :licence/authority "lead enforcement authority"
+     :licence/obtainable-by-company? true
+     :licence/regime :negative-licensing
+     :licence/note
+     (str "**日本の宅建業免許との最大の対照点**。英国は estate agency work に"
+          "事前免許を課さない。lead enforcement authority が不適格者に禁止命令を"
+          "出せるだけで、命令を受けていない限り誰でも営める。"
+          "宅建業法3条が免許＋5年更新＋宅建士設置を要求するのと構造が違う。")}
+    :rules
+    [{:rule/id "gbr.eaa-1979-s1"
+      :rule/title "Estate Agents Act 1979 s.1 — estate agency work"
+      :rule/instrument "Estate Agents Act 1979 (c.38)"
+      :rule/quote
+      (str "This Act applies … to things done by any person in the course of a business "
+           "… pursuant to instructions received from another person (… the client) who "
+           "wishes to dispose of or acquire an interest in land— (a) for the purpose of, "
+           "or with a view to, effecting the introduction to the client of a third person "
+           "who wishes to acquire or … dispose of such an interest; and (b) after such an "
+           "introduction has been effected …, for the purpose of securing the disposal or "
+           "… the acquisition of that interest")
+      :rule/url "https://www.legislation.gov.uk/ukpga/1979/38/section/1"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "legislation.gov.uk の XML（data.xml）から s.1 本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "対象行為は**紹介（introduction）**とその後の成約確保。"
+           "日本の宅建業法2条2号の『媒介』とほぼ同じ行為を指しているが、"
+           "英国側はこれに免許を課さない。")}
+     {:rule/id "gbr.eaa-1979-s3"
+      :rule/title "Estate Agents Act 1979 s.3 — orders prohibiting unfit persons from doing estate agency work"
+      :rule/instrument "Estate Agents Act 1979 (c.38)"
+      :rule/quote
+      (str "The power of the lead enforcement authority to make an order under this "
+           "section with respect to any person shall not be exercisable unless the lead "
+           "enforcement authority is satisfied that that person— (a) has committed an "
+           "offence involving fraud or other dishonesty or violence, or an offence under "
+           "any provision of this Act …; or (b) has committed discrimination in the course "
+           "of estate agency work …")
+      :rule/url "https://www.legislation.gov.uk/ukpga/1979/38/section/3"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "legislation.gov.uk の XML から s.3 本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**negative licensing** の典型 —— 事前に許可を与えるのではなく、"
+           "不正・暴力の犯罪歴や差別行為があった者を事後に排除する。"
+           "参入時点では何の許認可も要らない。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["gbr.eaa-1979-s1" "gbr.eaa-1979-s3"]
+     :condition
+     (str "**事前免許は不要**。s.3 の禁止命令を受けていないこと、および"
+          "同法の各種義務（報酬・利益相反の開示等、条文未取得）を守ること。"
+          "日本のように免許取得が参入の前提条件にならない。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["gbr.eaa-1979-s1"]
+     :condition
+     (str "そもそも免許が無いので『有資格者の背後に回る』動機が薄い。"
+          "自社が s.1 の紹介行為の主体になっても違法ではない。"
+          "委譲を採るなら、それは規制回避ではなく責任分界の設計として。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["EAA 1979 の実体義務（s.18 報酬開示、s.21 利益相反等）が未取得"
+     "Consumer Protection from Unfair Trading Regulations 2008 が未収載"
+     "賃貸仲介の tenant fees 規制（Tenant Fees Act 2019）が未収載"]}
+
+   ["GBR" :sector/employment-placement]
+   {:jurisdiction "GBR"
+    :sector :sector/employment-placement
+    :licence
+    {:licence/name "（一般的な事前免許なし）— 特定業種のみ gangmaster licensing"
+     :licence/law "Employment Agencies Act 1973 s.1（Licences、廃止済み）"
+     :licence/authority "Employment Agency Standards Inspectorate"
+     :licence/obtainable-by-company? true
+     :licence/regime :negative-licensing
+     :licence/note
+     (str "**日本の有料職業紹介許可（職安法30条）との対照点**。"
+          "英国は1973年法に免許制を置いていたが s.1 は廃止され、"
+          "一般の職業紹介事業に事前免許は要らない。"
+          "農業・食品加工等の gangmaster は別途免許制（未検証）。")}
+    :rules
+    [{:rule/id "gbr.ea-1973-s1-repealed"
+      :rule/title "Employment Agencies Act 1973 s.1 — Licences（廃止済み）"
+      :rule/instrument "Employment Agencies Act 1973 (c.35)"
+      :rule/url "https://www.legislation.gov.uk/ukpga/1973/35/section/1"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :official-url-retrieved
+      :rule/verification-note
+      (str "legislation.gov.uk の XML を取得したところ、"
+           "『Licences』と題する s.1 の本文が全面的に削除された状態"
+           "（公式サイトが廃止条文に用いる点線表示）で返された。"
+           "**廃止した法令（1994年 Deregulation and Contracting Out Act とされる）は"
+           "特定できていない**ため、一次読了とはしない。")
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "免許制の条文が現行法から削除されている。したがって一般の職業紹介に"
+           "事前免許は無い。ただし『免許が無い＝無規制』ではなく、"
+           "Conduct Regulations 2003 と gangmaster licensing が別に存在する（未検証）。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["gbr.ea-1973-s1-repealed"]
+     :condition
+     (str "一般の職業紹介には事前免許が要らない。ただし Conduct of Employment "
+          "Agencies and Employment Businesses Regulations 2003 の遵守と、"
+          "農業・食品加工等に及ぶ gangmaster licensing の該当性を確認すること"
+          "（いずれも未取得）。**日本と違い、参入時点の許可取得が論点にならない。**")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis []
+     :condition
+     (str "免許が無いので委譲の構図自体が日本と異なる。Conduct Regulations の"
+          "適用主体が誰かを確認するまで、この経路を成立と判定しない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["s.1 を廃止した法令が特定できていない"
+     "Conduct of Employment Agencies and Employment Businesses Regulations 2003 が未取得"
+     "Gangmasters (Licensing) Act 2004 が未収載 —— 農業・食品加工等では免許制が残る"]}
+
+   ["GBR" :sector/industrial-waste-collection]
+   {:jurisdiction "GBR"
+    :sector :sector/industrial-waste-collection
+    :licence
+    {:licence/name "controlled waste carrier の登録"
+     :licence/law "Control of Pollution (Amendment) Act 1989 s.1"
+     :licence/authority "Environment Agency（England）"
+     :licence/obtainable-by-company? true
+     :licence/exemptions
+     [{:exemption/id :same-premises
+       :exemption/detail
+       (str "s.1(2)(a) — 同一構内の異なる場所の間で controlled waste を運ぶ場合は"
+            "対象外。**日本の但書より狭い**: 廃掃法14条1項但書は『自ら排出した"
+            "産廃を自ら運搬する事業者』を場所を問わず除外するが、英国のこの除外は"
+            "同一構内に限られる。")}
+      {:exemption/id :import-transit
+       :exemption/detail "s.1(2)(b)(c) — 域外から持ち込まれ英国内で陸揚げされない廃棄物の運搬、および域外への航空・海上輸送。"}]
+     :licence/note
+     "『登録』であって許可ではないが、未登録での運搬は刑事罰の対象。"}
+    :rules
+    [{:rule/id "gbr.copaa-1989-s1"
+      :rule/title "Control of Pollution (Amendment) Act 1989 s.1 — offence of transporting controlled waste without registering"
+      :rule/instrument "Control of Pollution (Amendment) Act 1989 (c.14)"
+      :rule/quote
+      (str "Subject to the following provisions of this section, it shall be an offence "
+           "for any person who is not a registered carrier of controlled waste, in the "
+           "course of any business of his or otherwise with a view to profit, to transport "
+           "any controlled waste to or from any place in Great Britain. … "
+           "(2) A person shall not be guilty of an offence under this section in respect "
+           "of— (a) the transport of controlled waste within the same premises between "
+           "different places in those premises; …")
+      :rule/url "https://www.legislation.gov.uk/ukpga/1989/14/section/1"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "legislation.gov.uk の XML から s.1 本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "構成要件は『登録運搬業者でない者が、事業として又は利益を得る目的で、"
+           "英国内の場所へ／から controlled waste を運搬すること』。"
+           "**適用除外が同一構内の移動に限られる点が日本と決定的に違う** —— "
+           "自ら排出した廃棄物でも構外へ運べば登録が要る（規則側の下位区分は未取得）。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["gbr.copaa-1989-s1"]
+     :condition
+     (str "controlled waste carrier として登録していること。"
+          "**自社が排出した廃棄物でも、同一構内を出るなら登録が要る** —— "
+          "日本の『自ら運搬する排出事業者』除外に相当するものが無い。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["gbr.copaa-1989-s1"]
+     :condition
+     (str "登録運搬業者が運搬の主体となり、自社は運搬しないこと。"
+          "s.1 は『運搬する』行為を捕捉するので、運搬に関与しなければ及ばない。"
+          "委託者側の義務（duty of care、Environmental Protection Act 1990 s.34）は"
+          "未取得。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/written-contract}}
+
+    :known-gaps
+    ["Waste (England and Wales) Regulations 2011 の upper/lower tier 登録区分が未取得"
+     "Environmental Protection Act 1990 s.34（duty of care）が未収載"
+     "controlled waste の定義が未取得"]}
+
+   ["GBR" :sector/scrap-metal-dealing]
+   {:jurisdiction "GBR"
+    :sector :sector/scrap-metal-dealing
+    :licence
+    {:licence/name "scrap metal licence"
+     :licence/law "Scrap Metal Dealers Act 2013 s.1"
+     :licence/authority "地方自治体（licensing authority）"
+     :licence/obtainable-by-company? true
+     :licence/note
+     (str "**英国が中古品取引のうち免許制で捕まえている部分**。"
+          "一般の中古品売買に免許は無いが、金属くずは別。"
+          "日本の古物商許可が中古品全般を包括的に捕捉するのと対照的で、"
+          "英国は盗品リスクの高い金属くずだけを切り出している。")}
+    :rules
+    [{:rule/id "gbr.smda-2013-s1"
+      :rule/title "Scrap Metal Dealers Act 2013 s.1 — requirement for licence"
+      :rule/instrument "Scrap Metal Dealers Act 2013 (c.10)"
+      :rule/quote
+      (str "(1) No person may carry on business as a scrap metal dealer unless "
+           "authorised by a licence under this Act (a \"scrap metal licence\"). "
+           "(2) See section 21 for the meaning of \"carry on business as a scrap metal "
+           "dealer\". (3) A person who carries on business as a scrap metal dealer in "
+           "breach of subsection (1) is guilty of an offence and is liable on summary "
+           "conviction to a fine not exceeding level 5 on the standard scale.")
+      :rule/url "https://www.legislation.gov.uk/ukpga/2013/10/section/1"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "legislation.gov.uk の XML から s.1 本文を取得して読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "無免許営業は summary conviction で level 5 の罰金。"
+           "『carry on business as a scrap metal dealer』の意義は s.21 にあり未取得 —— "
+           "ITAD の金属回収がここに落ちるかはその定義次第。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["gbr.smda-2013-s1"]
+     :condition
+     (str "scrap metal licence を受けていること。"
+          "自社の業態が『carry on business as a scrap metal dealer』に当たるかは"
+          "s.21 の定義次第で、未取得。")}
+
+    :route/defer
+    {:verdict :unsettled
+     :basis []
+     :condition
+     (str "s.21 の定義を取るまで、自社が主体にならない形が成立するか判定しない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :known-gaps
+    ["SMDA 2013 s.21（carry on business as a scrap metal dealer の意義）が未取得"
+     "一般の中古品取引に免許が無いことの積極的な根拠が未取得（不在の推認にとどまる）"]}})
 
 ;; ---------------------------------------------------------------------------
 ;; Accessors
