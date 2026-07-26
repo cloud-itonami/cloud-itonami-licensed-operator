@@ -96,6 +96,94 @@
 (def verifications
   #{:primary-source-read :official-url-retrieved :secondary-source-only})
 
+(def regimes
+  "How a jurisdiction controls entry to a regulated activity. Three
+  shapes show up in the catalog so far, and they are not variations on
+  one theme — they change what an operator has to do before starting.
+
+    :prior-authorisation
+      Get a permit/licence/registration first (JPN 宅建業法3条,
+      DEU GewO §34c).
+    :negative-licensing
+      Start freely; the regulator excludes bad actors afterwards
+      (GBR Estate Agents Act 1979 — no licence, prohibition orders).
+    :prohibition-with-registration-exceptions
+      The activity is forbidden outright, and specific competence-based
+      registrations carve doors out of it (DEU RDG §3 read with §10).
+    :reserved-activities-only
+      The field is open by default and only an enumerated list of
+      activities is closed (GBR Legal Services Act 2007 Sch 2 — six
+      reserved activities, everything else unregulated as to entry)."
+  #{:prior-authorisation
+    :negative-licensing
+    :prohibition-with-registration-exceptions
+    :reserved-activities-only})
+
+;; ---------------------------------------------------------------------------
+;; Supranational constraints
+;; ---------------------------------------------------------------------------
+
+(def supranational-rules
+  "Rules that bind a STATE rather than an operator, held once and
+  referenced from the entries they touch.
+
+  These deliberately do NOT participate in verdict resolution. The
+  Services Directive tells Member States they may not maintain an
+  authorisation scheme unless it is justified and proportionate — it
+  does not tell a provider that German law's Erlaubnis can be ignored.
+  Only a court or the Commission can strike a scheme down. Folding this
+  into an operator's verdict would produce exactly the permissive-
+  direction error the whole catalog is built to avoid, so it is carried
+  as `:supranational-constraints` and surfaced separately."
+  {"eu.services-directive-art-9"
+   {:rule/id "eu.services-directive-art-9"
+    :rule/title "Directive 2006/123/EC (Services Directive) Article 9 — authorisation schemes"
+    :rule/instrument "Directive 2006/123/EC of the European Parliament and of the Council of 12 December 2006 on services in the internal market"
+    :rule/quote
+    (str "1. Member States shall not make access to a service activity or the exercise "
+         "thereof subject to an authorisation scheme unless the following conditions are "
+         "satisfied: (a) the authorisation scheme does not discriminate against the "
+         "provider in question; (b) the need for an authorisation scheme is justified by "
+         "an overriding reason relating to the public interest; (c) the objective pursued "
+         "cannot be attained by means of a less restrictive measure, in particular because "
+         "an a posteriori inspection would take place too late to be genuinely effective.")
+    :rule/url "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32006L0123"
+    :rule/url-provenance :official-eu-legislation-site
+    :rule/verification :primary-source-read
+    :rule/verification-note "EUR-Lex の CELEX:32006L0123 全文 HTML を取得し、Article 9 を読了。"
+    :rule/retrieved-at "2026-07-26"
+    :rule/binds :member-state
+    :rule/summary
+    (str "**加盟国に向けられた規定**。事業者に対して許可不要と言っているのではなく、"
+         "加盟国が許可制を維持できる条件（非差別・公益上の優越的理由による正当化・"
+         "比例性）を定める。事業者にとっては『その許可制を争う経路がある』という"
+         "意味であって、許可を免れる根拠ではない。")}
+
+   "eu.services-directive-art-16"
+   {:rule/id "eu.services-directive-art-16"
+    :rule/title "Directive 2006/123/EC (Services Directive) Article 16 — freedom to provide services"
+    :rule/instrument "Directive 2006/123/EC"
+    :rule/quote
+    (str "1. Member States shall respect the right of providers to provide services in a "
+         "Member State other than that in which they are established. … Member States "
+         "shall not make access to or exercise of a service activity in their territory "
+         "subject to compliance with any requirements which do not respect the following "
+         "principles: (a) non-discrimination …; (b) necessity …; (c) proportionality …. "
+         "2. Member States may not restrict the freedom to provide services in the case of "
+         "a provider established in another Member State by imposing any of the following "
+         "requirements: (a) an obligation on the provider to have an establishment in "
+         "their territory; …")
+    :rule/url "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32006L0123"
+    :rule/url-provenance :official-eu-legislation-site
+    :rule/verification :primary-source-read
+    :rule/verification-note "EUR-Lex の CELEX:32006L0123 全文 HTML を取得し、Article 16 を読了。"
+    :rule/retrieved-at "2026-07-26"
+    :rule/binds :member-state
+    :rule/summary
+    (str "他の加盟国に設立された提供者による越境役務提供の自由。"
+         "これも**加盟国に向けられた規定**で、自己執行的な適用除外ではない。"
+         "現地に拠点を置く義務の賦課は2項(a)で禁じられる。")}})
+
 (def verdicts #{:admissible :conditional :prohibited :unsettled})
 
 ;; ---------------------------------------------------------------------------
@@ -1366,6 +1454,7 @@
      :licence/law "Legal Services Act 2007 s.12 / Schedule 2"
      :licence/authority "各 approved regulator（SRA 等）"
      :licence/obtainable-by-company? true
+     :licence/regime :reserved-activities-only
      :licence/note
      (str "**留保されているのは6類型だけ**。それ以外の法的助言・書類作成・"
           "紛争解決の代理は authorised person でなくとも行える。"
@@ -1662,7 +1751,296 @@
 
     :known-gaps
     ["SMDA 2013 s.21（carry on business as a scrap metal dealer の意義）が未取得"
-     "一般の中古品取引に免許が無いことの積極的な根拠が未取得（不在の推認にとどまる）"]}})
+     "一般の中古品取引に免許が無いことの積極的な根拠が未取得（不在の推認にとどまる）"]}
+
+   ;; =======================================================================
+   ;; Deutschland。日英どちらとも違う**第三の型**が出る。
+   ;; =======================================================================
+   ["DEU" :sector/legal-services]
+   {:jurisdiction "DEU"
+    :sector :sector/legal-services
+    :licence
+    {:licence/name "Registrierung beim Bundesamt für Justiz（特定分野の登録）／弁護士資格"
+     :licence/law "Rechtsdienstleistungsgesetz §3（原則禁止）・§10（登録による例外）"
+     :licence/authority "Bundesamt für Justiz"
+     :licence/obtainable-by-company? true
+     :licence/regime :prohibition-with-registration-exceptions
+     :licence/note
+     (str "**日英どちらとも違う第三の型**。英国のように『6類型以外は自由』でもなく、"
+          "日本のように『弁護士以外は原則不可』でもない。§3 が裁判外の法サービスの"
+          "自主的提供を**原則禁止**した上で、§10 が Inkasso・年金相談・外国法という"
+          "**能力分野ごとの登録**で門を開ける。法人でも登録できる。")}
+    :rules
+    [{:rule/id "deu.rdg-2"
+      :rule/title "RDG § 2 — Begriff der Rechtsdienstleistung"
+      :rule/instrument "Rechtsdienstleistungsgesetz (RDG)"
+      :rule/quote
+      (str "(1) Rechtsdienstleistung ist jede Tätigkeit in konkreten fremden "
+           "Angelegenheiten, sobald sie eine **rechtliche Prüfung des Einzelfalls** "
+           "erfordert. (2) Rechtsdienstleistung ist … die Einziehung fremder oder zum "
+           "Zweck der Einziehung auf fremde Rechnung abgetretener Forderungen, wenn die "
+           "Forderungseinziehung als eigenständiges Geschäft betrieben wird, einschließlich "
+           "der auf die Einziehung bezogenen rechtlichen Prüfung und Beratung "
+           "(Inkassodienstleistung). (3) Rechtsdienstleistung ist nicht: 1. die Erstattung "
+           "wissenschaftlicher Gutachten, 2. die Tätigkeit von Einigungs- und "
+           "Schlichtungsstellen, Schiedsrichterinnen und Schiedsrichtern, …")
+      :rule/url "https://www.gesetze-im-internet.de/rdg/__2.html"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note
+      "gesetze-im-internet.de の RDG XML（xml.zip）を取得し、§2 を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "境界語は「**個別事案の法的検討を要するか**」。"
+           "日本の法務省ガイドラインが『個別の事案における…法的に処理して』を"
+           "判断要素として挙げるのと**ほぼ同じ線を、こちらは定義そのものとして"
+           "条文に置いている**。機械が個別事案を法的に処理した瞬間に規制対象に"
+           "入る、という設計は日独で共通。")}
+     {:rule/id "deu.rdg-3"
+      :rule/title "RDG § 3 — Befugnis zur Erbringung außergerichtlicher Rechtsdienstleistungen"
+      :rule/instrument "Rechtsdienstleistungsgesetz (RDG)"
+      :rule/quote
+      (str "Die selbständige Erbringung außergerichtlicher Rechtsdienstleistungen ist "
+           "unzulässig, soweit sie nicht erlaubt wird 1. durch § 5 Absatz 1 Satz 1, "
+           "§ 6 Absatz 1, § 7 Absatz 1 Satz 1, § 8 Absatz 1, § 10 Absatz 1 Satz 1 oder "
+           "§ 15 … oder 2. durch oder aufgrund eines anderen Gesetzes.")
+      :rule/url "https://www.gesetze-im-internet.de/rdg/__3.html"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "同 XML から §3 を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**原則禁止 + 限定列挙の例外**という構造。許可の有無ではなく、"
+           "列挙された条文のどれかに乗れるかで適法性が決まる。")}
+     {:rule/id "deu.rdg-10"
+      :rule/title "RDG § 10 — Rechtsdienstleistungen aufgrund besonderer Sachkunde"
+      :rule/instrument "Rechtsdienstleistungsgesetz (RDG)"
+      :rule/quote
+      (str "(1) Natürliche und juristische Personen sowie rechtsfähige "
+           "Personengesellschaften, die beim Bundesamt für Justiz registriert sind "
+           "(registrierte Personen), dürfen aufgrund besonderer Sachkunde "
+           "Rechtsdienstleistungen in folgenden Bereichen erbringen: "
+           "1. Inkassodienstleistungen (§ 2 Abs. 2 Satz 1), 2. Rentenberatung …, "
+           "3. Rechtsdienstleistungen in einem ausländischen Recht …")
+      :rule/url "https://www.gesetze-im-internet.de/rdg/__10.html"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "同 XML から §10 を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "**法人が登録できる**のが日本との決定的な違い。Inkasso 登録が"
+           "ドイツ legal tech の主要経路になっているのはこの条文があるから"
+           "（BGH VIII ZR 285/18 wenigermiete.de がこの射程を広く解した）。"
+           "ただし開くのは列挙された3分野だけで、一般的な法律相談は開かない。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["deu.rdg-3" "deu.rdg-10" "deu.rdg-2"]
+     :condition
+     (str "§3 により裁判外の法サービスの自主的提供は原則禁止。"
+          "自社が主体になるには §10 の登録（Inkasso / 年金相談 / 外国法）に"
+          "乗るか、他の条文（§5 付随業務等、未取得）の例外に当たること。"
+          "**そもそも §2(1) の『個別事案の法的検討を要する活動』に当たらなければ"
+          "規制の外**なので、まずそこを判定する。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["deu.rdg-3" "deu.rdg-2"]
+     :condition
+     (str "Rechtsanwalt または §10 登録者が主体となり、自社は §2(1) の"
+          "『個別事案の法的検討』を行わない位置にとどまること。"
+          "BRAO §49b(3) により、その者に受任仲介の対価を渡すことはできない。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/personally-decided}}
+
+    :supranational-constraints
+    [{:constraint/id :services-directive-authorisation
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-9"
+      :constraint/detail
+      (str "この許可制は EU 役務指令9条の下で、非差別・公益上の優越的理由による"
+           "正当化・比例性を満たす限りでのみ維持できる。**これは事業者の義務を"
+           "免除しない** —— 許可は依然として要る。争う経路があることを示すだけ。")}
+     {:constraint/id :services-directive-cross-border
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-16"
+      :constraint/detail
+      (str "他の加盟国に設立された提供者による越境提供には16条の保護が及びうる。"
+           "ドイツ国内に拠点を置く義務の賦課は2項(a)で禁じられる。"
+           "ただしこれも自己執行的な適用除外ではない。")}]
+
+    :known-gaps
+    ["RDG §5（付随業務としての法サービス）が未取得 —— 実務上最も使われる例外"
+     "§10 の登録要件（Sachkunde の証明方法）が未取得"
+     "BRAO §49b(2)(3) は legalsupport 側に一次読了済みだが本カタログ未収載"]}
+
+   ["DEU" :sector/real-estate-brokerage]
+   {:jurisdiction "DEU"
+    :sector :sector/real-estate-brokerage
+    :licence
+    {:licence/name "Erlaubnis nach § 34c GewO（Immobilienmakler）"
+     :licence/law "Gewerbeordnung § 34c Abs. 1"
+     :licence/authority "zuständige Behörde（州により異なる）"
+     :licence/obtainable-by-company? true
+     :licence/regime :prior-authorisation
+     :licence/note
+     (str "**3法域そろって3通り**になる業種。JPN は宅建業免許、GBR は事前免許なし、"
+          "DEU は GewO §34c の Erlaubnis。しかも DEU は Vermittlung（媒介）だけでなく"
+          "**Nachweis der Gelegenheit（機会の提示）**まで捕捉しており、"
+          "日本の『媒介』より広い。")}
+    :rules
+    [{:rule/id "deu.gewo-34c"
+      :rule/title "GewO § 34c Abs. 1 — Immobilienmakler u.a."
+      :rule/instrument "Gewerbeordnung (GewO)"
+      :rule/quote
+      (str "(1) Wer gewerbsmäßig 1. den Abschluss von Verträgen über Grundstücke, "
+           "grundstücksgleiche Rechte, gewerbliche Räume oder Wohnräume **vermitteln** "
+           "oder die **Gelegenheit zum Abschluss solcher Verträge nachweisen**, … "
+           "will, bedarf der Erlaubnis der zuständigen Behörde.")
+      :rule/url "https://www.gesetze-im-internet.de/gewo/__34c.html"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "gesetze-im-internet.de の GewO XML を取得し、§34c を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "捕捉範囲は媒介**と機会の提示の両方**。物件情報を並べて"
+           "『ここに取引の機会がある』と示すだけでも Nachweis に当たりうるので、"
+           "英国の introduction や日本の媒介より広い可能性がある。"
+           "ops 層に徹する設計はこの分だけ苦しい。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["deu.gewo-34c"]
+     :condition "GewO §34c の Erlaubnis を受けていること。法人で取得できる。"}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["deu.gewo-34c"]
+     :condition
+     (str "Erlaubnis 保有者が媒介の主体となり、自社は §34c の"
+          "vermitteln にも **nachweisen** にも当たらない位置にとどまること。"
+          "後者が広いので、物件情報の提示機能を持たせる設計は要注意。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/written-contract}}
+
+    :supranational-constraints
+    [{:constraint/id :services-directive-authorisation
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-9"
+      :constraint/detail
+      (str "この許可制は EU 役務指令9条の下で、非差別・公益上の優越的理由による"
+           "正当化・比例性を満たす限りでのみ維持できる。**これは事業者の義務を"
+           "免除しない** —— 許可は依然として要る。争う経路があることを示すだけ。")}
+     {:constraint/id :services-directive-cross-border
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-16"
+      :constraint/detail
+      (str "他の加盟国に設立された提供者による越境提供には16条の保護が及びうる。"
+           "ドイツ国内に拠点を置く義務の賦課は2項(a)で禁じられる。"
+           "ただしこれも自己執行的な適用除外ではない。")}]
+
+    :known-gaps
+    ["§34c の Versagungsgründe（不許可事由）と Abs.2 以下が未取得"
+     "MaBV（Makler- und Bauträgerverordnung）が未収載"
+     "『Nachweis』の外延を示す判例が未収載"]}
+
+   ["DEU" :sector/industrial-waste-collection]
+   {:jurisdiction "DEU"
+    :sector :sector/industrial-waste-collection
+    :licence
+    {:licence/name "Anzeige nach § 53 KrWG（危険廃棄物は § 54 の Erlaubnis）"
+     :licence/law "Kreislaufwirtschaftsgesetz § 53 Abs. 1 / § 54 Abs. 1"
+     :licence/authority "Behörde des Landes, in dem der Anzeigende seinen Hauptsitz hat"
+     :licence/obtainable-by-company? true
+     :licence/regime :prior-authorisation
+     :licence/note
+     (str "**二段構造の軸が日英と違う**。日本は収集運搬と処分で分け、英国は"
+          "controlled waste 一律で登録。ドイツは**廃棄物が危険かどうか**で"
+          "届出（§53）と許可（§54）を分ける。しかも Sammler・Beförderer だけでなく"
+          "**Händler と Makler（仲介者）も対象**なので、取次ぎに徹する ops 層が"
+          "そのまま規制対象に入る。")}
+    :rules
+    [{:rule/id "deu.krwg-53"
+      :rule/title "KrWG § 53 Abs. 1 — Sammler, Beförderer, Händler und Makler von Abfällen"
+      :rule/instrument "Kreislaufwirtschaftsgesetz (KrWG)"
+      :rule/quote
+      (str "(1) Sammler, Beförderer, Händler und Makler von Abfällen haben die Tätigkeit "
+           "ihres Betriebes vor Aufnahme der Tätigkeit der zuständigen Behörde "
+           "**anzuzeigen**, es sei denn, der Betrieb verfügt über eine Erlaubnis nach "
+           "§ 54 Absatz 1. … Zuständig ist die Behörde des Landes, in dem der Anzeigende "
+           "seinen Hauptsitz hat. (2) Der Inhaber eines Betriebes … sowie die für die "
+           "Leitung und Beaufsichtigung des Betriebes verantwortlichen Personen müssen "
+           "zuverlässig sein.")
+      :rule/url "https://www.gesetze-im-internet.de/krwg/__53.html"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "gesetze-im-internet.de の KrWG XML を取得し、§53 を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "非危険廃棄物は事前**届出**で足りる。ただし対象が"
+           "Sammler（収集）・Beförderer（運搬）に加え **Händler（取引）・"
+           "Makler（仲介）**まで及ぶ点が重要 —— 自ら運ばず仲介するだけでも届出義務。")}
+     {:rule/id "deu.krwg-54"
+      :rule/title "KrWG § 54 Abs. 1 — gefährliche Abfälle"
+      :rule/instrument "Kreislaufwirtschaftsgesetz (KrWG)"
+      :rule/quote
+      (str "(1) Sammler, Beförderer, Händler und Makler von **gefährlichen Abfällen** "
+           "bedürfen der **Erlaubnis**. Die zuständige Behörde hat die Erlaubnis zu "
+           "erteilen, wenn 1. keine Tatsachen bekannt sind, aus denen sich Bedenken gegen "
+           "die Zuverlässigkeit … ergeben, sowie 2. der Inhaber …, die … verantwortlichen "
+           "Personen und das sonstige Personal über die für ihre Tätigkeit notwendige "
+           "Fach- und Sachkunde verfügen.")
+      :rule/url "https://www.gesetze-im-internet.de/krwg/__54.html"
+      :rule/url-provenance :official-legislation-site
+      :rule/verification :primary-source-read
+      :rule/verification-note "同 XML から §54 を読了。"
+      :rule/retrieved-at "2026-07-26"
+      :rule/summary
+      (str "危険廃棄物なら許可が要る。許可は羈束的（要件を満たせば"
+           "『hat … zu erteilen』）で、信頼性と専門知識が要件。"
+           "ITAD の PC 廃棄はバッテリー等の扱い次第で危険廃棄物側に落ちうる。")}]
+
+    :route/principal
+    {:verdict :conditional
+     :basis ["deu.krwg-53" "deu.krwg-54"]
+     :condition
+     (str "非危険廃棄物なら §53 の事前届出、危険廃棄物なら §54 の Erlaubnis。"
+          "**扱う廃棄物が危険かどうかでどちらに落ちるかが決まる**ので、"
+          "まず廃棄物分類を確定させること。")}
+
+    :route/defer
+    {:verdict :conditional
+     :basis ["deu.krwg-53"]
+     :condition
+     (str "**この法域では委譲の逃げ道が特に狭い。** §53/§54 の名宛人に"
+          "Händler と Makler が含まれるので、許可業者に取り次ぐだけの"
+          "ops 層も Makler として届出（危険廃棄物なら許可）の対象になりうる。"
+          "自社が Makler に当たらないと言えるかを先に詰めること。")
+     :licensee-requirements
+     #{:req/licence-verified :req/same-jurisdiction :req/scope-covers
+       :req/written-contract}}
+
+    :supranational-constraints
+    [{:constraint/id :services-directive-authorisation
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-9"
+      :constraint/detail
+      (str "この許可制は EU 役務指令9条の下で、非差別・公益上の優越的理由による"
+           "正当化・比例性を満たす限りでのみ維持できる。**これは事業者の義務を"
+           "免除しない** —— 許可は依然として要る。争う経路があることを示すだけ。")}
+     {:constraint/id :services-directive-cross-border
+      :constraint/on :member-state
+      :constraint/basis "eu.services-directive-art-16"
+      :constraint/detail
+      (str "他の加盟国に設立された提供者による越境提供には16条の保護が及びうる。"
+           "ドイツ国内に拠点を置く義務の賦課は2項(a)で禁じられる。"
+           "ただしこれも自己執行的な適用除外ではない。")}]
+
+    :known-gaps
+    ["gefährliche Abfälle の定義（AVV / § 3 Abs. 5 KrWG）が未取得"
+     "§53 の届出後の義務（Nachweisverordnung）が未収載"
+     "『Makler』の外延 —— ops 層がここに入るかの分岐点だが判例未収載"]}})
 
 ;; ---------------------------------------------------------------------------
 ;; Accessors
@@ -1753,8 +2131,22 @@
   [jid sector]
   (get (entry jid sector) :rules []))
 
-(defn rule [jid sector rule-id]
-  (first (filter #(= rule-id (:rule/id %)) (rules jid sector))))
+(defn rule
+  "Look up a rule by id for `[jid sector]`. Falls back to
+  `supranational-rules`, which are held once rather than copied into
+  every entry they touch."
+  [jid sector rule-id]
+  (or (first (filter #(= rule-id (:rule/id %)) (rules jid sector)))
+      (get supranational-rules rule-id)))
+
+(defn supranational-constraints
+  "Constraints that bind the STATE whose law governs `[jid sector]`, not
+  the operator. Returned by `gate/plan` alongside — never inside — the
+  verdict, so a reader cannot mistake \"the Directive says this scheme
+  must be proportionate\" for \"you may skip the permit\"."
+  [jid sector]
+  (mapv (fn [c] (assoc c :constraint/rule (get supranational-rules (:constraint/basis c))))
+        (get (entry jid sector) :supranational-constraints [])))
 
 (defn verified-rule?
   "許可方向の結論を支えられる検証水準か。"

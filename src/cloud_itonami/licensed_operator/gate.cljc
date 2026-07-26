@@ -179,6 +179,11 @@
      :licence lic-facts
      ;; 主たる許認可だけ見て『取れた＝営業できる』と読ませない。
      :additional-gates (cat/additional-gates jurisdiction sector)
+     ;; 国家を縛る制約。**verdict には一切影響しない**（catalog の
+     ;; supranational-rules の docstring 参照）。読み手が「指令が比例性を
+     ;; 要求している」を「許可を飛ばしてよい」と取り違えないよう、
+     ;; ラベル付きで verdict の外に置く。
+     :supranational-constraints (cat/supranational-constraints jurisdiction sector)
      :citations (citations jurisdiction sector
                            (case chosen :principal :route/principal :route/defer))
      :next (when (= :blocked chosen)
@@ -221,6 +226,7 @@
                   :licence (get-in e [:licence :licence/name])
                   :law (get-in e [:licence :licence/law])
                   :regime (get-in e [:licence :licence/regime] :prior-authorisation)
+                  :supranational (mapv :constraint/id (cat/supranational-constraints jid sector))
                   :principal (:verdict (verdict-for jid sector :route/principal))
                   :defer (:verdict (verdict-for jid sector :route/defer))
                   :gates (count (all-gates jid sector))})))))

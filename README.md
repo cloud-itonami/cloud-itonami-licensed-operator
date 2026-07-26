@@ -10,7 +10,7 @@ StateGraph も台帳も持たない。何も申請せず、許認可も持たず
 **consumer**: `cloud-itonami-isic-6910-legalsupport`（`licensee/verify` に
 reviewer 検査を委譲。抽出元でもある）。
 
-**66 tests / 925 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**70 tests / 1,064 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
 
 ## なぜ要るか
 
@@ -157,38 +157,54 @@ id を置くと `entry` が親（`"JPN"`）から継承して解決します。�
    誤れば無許可営業の刑事責任を利用者に負わせる。
 3. **カバレッジは報告する。** 未収載は「規制が無い」ではなく「未調査」。
 
-現在: **21件（法域×業種）・41の異なるルール** —— JPN 13業種 + JPN-13（東京都）3件 +
-GBR 5業種。うち **36 が条文原文の読了**（`:primary-source-read`）、5 が公式ページの
-取得で、**二次情報のみに依拠したルールはゼロ**です。
+現在: **24件（法域×業種）・47の異なるルール** —— JPN 13業種 + JPN-13（東京都）3件 +
+GBR 5業種 + DEU 3業種。うち **42 が条文原文の読了**、5 が公式ページの取得で、
+**二次情報のみに依拠したルールはゼロ**です。
 
-条文取得の経路は法域ごとに違います。日本は e-Gov 法令 API（`/api/1/articles` が条単位、
-`/api/1/lawdata` が全文）、英国は legislation.gov.uk（各条に `data.xml` が付く）。
-どちらも認証不要で XML を返します。ドイツ（gesetze-im-internet.de の XML）、EU
-（EUR-Lex CELLAR）、カナダ（laws-lois の XML）も到達可能なことは確認済みですが未収載です。
+条文取得の経路は法域ごとに違いますが、いずれも認証不要で XML/HTML を返します:
+日本 e-Gov 法令 API、英国 legislation.gov.uk（各条に `data.xml`）、
+ドイツ gesetze-im-internet.de（法令ごとに `xml.zip`）、EU は EUR-Lex。
 
-### 同じ活動が、法域によって別の仕組みで規律されている
+### 入口の作りは4通りある
 
-複数法域を持つ意味はここに出ます。`gate/compare-sector` が同一業種を横断で並べます。
+複数法域を持つ意味はここに出ます。`gate/compare-sector` が同一業種を横断で並べ、
+`:licence/regime` が**入口の作りの型**を持ちます。同じ「法律サービス」でも:
 
-| 業種 | JPN | GBR |
+| 法域 | 型 | 中身 |
 |---|---|---|
-| 不動産仲介 | 宅建業法3条の**免許**（5年更新・宅建士設置） | Estate Agents Act 1979 —— **事前免許なし**。s.3 の禁止命令で不適格者を事後排除 |
-| 職業紹介 | 職安法30条の**許可**（厚労大臣） | Employment Agencies Act 1973 s.1「Licences」は**廃止済み**。一般の紹介に事前免許なし |
-| 廃棄物運搬 | 廃掃法14条1項。**自ら排出した産廃を自ら運搬する事業者は場所を問わず除外** | COPAA 1989 s.1。除外は**同一構内の移動のみ** —— 自社の廃棄物でも構外に出れば登録が要る |
-| 中古品 | 古物営業法が中古品全般を包括的に捕捉 | 一般の中古品に免許はなく、**金属くずだけ** Scrap Metal Dealers Act 2013 s.1 が切り出す |
+| JPN | `:prior-authorisation` | 弁護士法72条 —— 資格者以外は原則不可。**法人が名義人になれない唯一の法域** |
+| GBR | `:reserved-activities-only` | LSA 2007 —— 6類型だけが閉じ、それ以外は入口規制なし |
+| DEU | `:prohibition-with-registration-exceptions` | RDG §3 で原則禁止、§10 の**能力分野別登録**（Inkasso 等）で門を開ける。**法人も登録できる** |
 
-`:licence/regime` が `:prior-authorisation` か `:negative-licensing` かを持ちます。
-**同じ経済活動でも「参入時に許可を取る」世界と「不適格者を後から排除する」世界は
-別物**で、事業設計への含意がまったく違います。
+不動産仲介ではさらに `:negative-licensing`（GBR、事前免許なし・禁止命令で事後排除）が
+加わって4通り出そろいます。**「参入前に許可を取る」「列挙されたものだけ閉じる」
+「原則禁止＋登録で開ける」「自由に始めて後から排除する」は別の世界**で、
+事業設計への含意がまったく違います。
 
-日本の許認可業種は数百、都道府県は47、世界の法域は約200あり、これは21件にすぎません。
-残る穴は条例（自治体の例規集は API が無い）と、「媒介」「医業」の外延を示す判例です。
-各エントリの `:known-gaps` が名指ししています。
+`RDG §2(1)` の境界語「**個別事案の法的検討を要するか**」は、日本の法務省ガイドラインが
+判断要素として挙げる線とほぼ同じものを、**定義そのものとして条文に置いた**ものです。
+機械が個別事案を法的に処理した瞬間に規制対象へ入る、という設計は日独で一致します。
+
+### EU は事業者ではなく加盟国を縛る
+
+役務指令9条は「**Member States shall not make** … subject to an authorisation scheme
+unless…」と書かれています。**加盟国の権限を縛るのであって、事業者に許可を免除する
+ものではありません。** ドイツ法が Erlaubnis を要求する以上、事業者は取る必要がある —
+指令が与えるのは「その許可制を争う経路がある」ことだけで、裁判所や委員会だけが
+制度を無効にできます。
+
+これを verdict に混ぜると、まさにこのカタログが避けようとしている**許可方向の誤り**に
+なります。そこで EU 規範は `:supranational-constraints` として **verdict の外**に置き、
+`:constraint/on :member-state` のラベルを付けています。テストが
+「EU 制約を全部消しても verdict が1つも変わらない」ことを確かめます。
+
+日本の許認可業種は数百、都道府県は47、世界の法域は約200あり、これは24件にすぎません。
+各エントリの `:known-gaps` が何を確認していないかを名指ししています。
 
 ## 使い方
 
 ```bash
-clojure -M:test   # 66 tests / 925 assertions
+clojure -M:test   # 70 tests / 1,064 assertions
 clojure -M:lint   # clj-kondo, errors fail
 ```
 

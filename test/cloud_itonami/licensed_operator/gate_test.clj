@@ -335,12 +335,14 @@
   (testing "同じ経済活動でも、日本の事前免許に対して英国は事前免許なしのことがある"
     (let [rows (gate/compare-sector :sector/real-estate-brokerage)
           by-j (into {} (map (juxt :jurisdiction identity) rows))]
-      (is (= 2 (count rows)) "JPN と GBR の両方に収録があること")
+      (is (= 3 (count rows)) "JPN・GBR・DEU の3法域に収録があること")
       (is (= :prior-authorisation (:regime (get by-j "JPN"))))
       (is (= :negative-licensing (:regime (get by-j "GBR")))
           "英国 estate agency は事前免許でなく禁止命令による事後規律")
+      (is (= :prior-authorisation (:regime (get by-j "DEU"))))
       (is (re-find #"免許" (:licence (get by-j "JPN"))))
-      (is (re-find #"事前免許なし" (:licence (get by-j "GBR"))))))
+      (is (re-find #"事前免許なし" (:licence (get by-j "GBR"))))
+      (is (re-find #"34c" (:licence (get by-j "DEU"))))))
   (testing "職業紹介も同じ対照"
     (let [by-j (into {} (map (juxt :jurisdiction identity)
                              (gate/compare-sector :sector/employment-placement)))]
@@ -378,4 +380,79 @@
           row (gate/compare-sector sector)]
     (is (= (:principal row)
            (:verdict (gate/verdict-for (:jurisdiction row) sector :route/principal))))
-    (is (contains? #{:prior-authorisation :negative-licensing} (:regime row)))))
+    (is (contains? cat/regimes (:regime row)))))
+
+(deftest germany-is-a-third-regime-shape
+  (testing "RDG は『6類型以外自由』でも『弁護士以外不可』でもない第三の型"
+    (is (= :prohibition-with-registration-exceptions
+           (get-in (cat/entry "DEU" :sector/legal-services) [:licence :licence/regime])))
+    (let [r3 (cat/rule "DEU" :sector/legal-services "deu.rdg-3")
+          r10 (cat/rule "DEU" :sector/legal-services "deu.rdg-10")]
+      (is (re-find #"ist unzulässig, soweit sie nicht erlaubt wird" (:rule/quote r3))
+          "原則禁止 + 限定列挙の例外")
+      (is (re-find #"juristische Personen" (:rule/quote r10))
+          "法人が登録できることが条文にある —— 日本との決定的な違い")))
+  (testing "境界語は日本の法務省ガイドラインとほぼ同じ線を引いている"
+    (let [r (cat/rule "DEU" :sector/legal-services "deu.rdg-2")]
+      (is (re-find #"rechtliche Prüfung des Einzelfalls" (:rule/quote r)))
+      (is (re-find #"個別事案の法的検討" (:rule/summary r))))))
+
+(deftest german-waste-splits-on-hazardousness-not-on-activity
+  (testing "二段構造の軸が日英と違う"
+    (let [r53 (cat/rule "DEU" :sector/industrial-waste-collection "deu.krwg-53")
+          r54 (cat/rule "DEU" :sector/industrial-waste-collection "deu.krwg-54")]
+      (is (re-find #"anzuzeigen" (:rule/quote r53)) "非危険は届出")
+      (is (re-find #"gefährlichen Abfällen.*bedürfen der \*\*Erlaubnis\*\*"
+                   (clojure.string/replace (:rule/quote r54) #"\s+" " "))
+          "危険は許可"))
+    (testing "Händler と Makler まで名宛人なので取次ぎ層も捕捉されうる"
+      (is (re-find #"Händler und Makler"
+                   (:rule/quote (cat/rule "DEU" :sector/industrial-waste-collection "deu.krwg-53"))))
+      (is (re-find #"委譲の逃げ道が特に狭い"
+                   (:condition (gate/verdict-for "DEU" :sector/industrial-waste-collection
+                                                 :route/defer)))))))
+
+(deftest eu-constraints-bind-the-state-and-never-move-a-verdict
+  (testing "役務指令は加盟国を縛る —— 事業者の verdict を動かしてはならない"
+    (let [cs (cat/supranational-constraints "DEU" :sector/real-estate-brokerage)]
+      (is (= 2 (count cs)))
+      (is (every? #(= :member-state (:constraint/on %)) cs))
+      (is (every? #(= :member-state (get-in % [:constraint/rule :rule/binds])) cs))
+      (is (re-find #"事業者の義務を免除しない"
+                   (:constraint/detail (first cs)))))
+    (testing "plan は verdict の外に、ラベル付きで返す"
+      (let [p (gate/plan {:jurisdiction "DEU" :sector :sector/real-estate-brokerage
+                          :licence-held? true :attestations #{:route/principal}})]
+        (is (= :principal (:route p)))
+        (is (= 2 (count (:supranational-constraints p))))))
+    (testing "EU 制約を全部消しても verdict は1つも変わらない"
+      (let [before (into {} (for [[j sec] (cat/keys-covered)
+                                  r [:route/principal :route/defer]]
+                              [[j sec r] (:verdict (gate/verdict-for j sec r))]))]
+        (with-redefs [cat/catalog
+                      (into {} (for [[k e] cat/catalog]
+                                 [k (dissoc e :supranational-constraints)]))]
+          (let [after (into {} (for [[j sec] (cat/keys-covered)
+                                     r [:route/principal :route/defer]]
+                                 [[j sec r] (:verdict (gate/verdict-for j sec r))]))]
+            (is (= before after)
+                "supranational-constraints が verdict に漏れている")))))))
+
+(deftest legal-services-shows-four-distinct-regime-shapes
+  (testing "同じ『法律サービス』でも入口の作りが法域ごとに違う"
+    (let [by-j (into {} (map (juxt :jurisdiction identity)
+                             (gate/compare-sector :sector/legal-services)))]
+      (is (= :prior-authorisation (:regime (get by-j "JPN")))
+          "日本: 弁護士法72条 —— 資格者以外は原則不可")
+      (is (= :reserved-activities-only (:regime (get by-j "GBR")))
+          "英国: LSA 2007 —— 6類型だけが閉じており、それ以外は入口規制なし")
+      (is (= :prohibition-with-registration-exceptions (:regime (get by-j "DEU")))
+          "独: RDG §3 で原則禁止、§10 の能力別登録で門を開ける")
+      (is (= :prohibited (:principal (get by-j "JPN")))
+          "法人が名義人になれないのは日本だけ"))
+    (testing "既定値に落ちている entry が無いこと（regime の書き忘れ検出）"
+      (doseq [[jid sector] (cat/keys-covered)
+              :when (nil? (cat/parent-jurisdiction jid))]
+        (is (contains? cat/regimes
+                       (get-in (cat/entry jid sector) [:licence :licence/regime]
+                               :prior-authorisation)))))))
