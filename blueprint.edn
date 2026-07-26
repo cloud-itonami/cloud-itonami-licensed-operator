@@ -25,4 +25,4 @@
   :regulatory-tracker "cloud-itonami-regulatory-tracker（許認可を取る進行の管理。別の問い）"
   :kyoninka "kotoba-lang/kyoninka（日本の許認可手続きの procedure-as-data。:next の行き先）"
   :itad "gftdcojp/ai-gftd-itad（古物商・産廃の実ケース）"}
- :itonami.blueprint/adr "com-junkawasaki/root 90-docs/adr/2607262000-licensed-operator-deferral-gate.edn"}
+ :itonami.blueprint/adr "com-junkawasaki/root 90-docs/adr/2607262500-licensed-operator-deferral-gate.edn"}
