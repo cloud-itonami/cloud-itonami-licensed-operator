@@ -23,7 +23,12 @@
     (is (re-find #"^https://" (str (:rule/url r)))
         (str (:rule/id r) " の URL が https でない"))
     (is (contains? cat/verifications (:rule/verification r)))
-    (is (= "2026-07-26" (:rule/retrieved-at r)))))
+    ;; 収録日は固定値ではない（カタログは追記されていく）。要求するのは
+    ;; 「いつ読んだかが記録されていること」であって、全部が同じ日であること
+    ;; ではない —— 固定値で縛ると、追記のたびに既存の日付を書き換えたく
+    ;; なってしまい、出典の鮮度が嘘になる。
+    (is (re-find #"^\d{4}-\d{2}-\d{2}$" (str (:rule/retrieved-at r)))
+        (str (:rule/id r) " に取得日が無い / ISO 日付でない"))))
 
 (deftest rule-ids-are-unique-within-a-key
   (doseq [[jid sector] (cat/keys-covered)]
