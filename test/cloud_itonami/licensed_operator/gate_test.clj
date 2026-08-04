@@ -257,7 +257,6 @@
   (testing "廃掃法14条1項但書 — 自ら排出した産廃を自ら運ぶ排出事業者には許可が要らない"
     (let [l (gate/licence "JPN" :sector/industrial-waste-collection)
           ex (:licence/exemptions l)]
-      (is (= 2 (count ex)))
       (is (contains? (set (map :exemption/id ex)) :own-waste-self-transport))
       (is (re-find #"排出事業者は顧客であって自社ではない"
                    (:exemption/detail (first (filter #(= :own-waste-self-transport (:exemption/id %)) ex))))
@@ -265,6 +264,42 @@
     (let [r (cat/rule "JPN" :sector/industrial-waste-collection "jpn.haikibutsu-ho-14")]
       (is (= :primary-source-read (:rule/verification r)))
       (is (re-find #"自らその産業廃棄物を運搬する場合に限る" (:rule/quote r))))))
+
+(deftest kogata-kaden-lifts-both-waste-licences-at-once
+  (testing "小型家電リサイクル法13条は廃掃法14条1項と6項を同時に外す"
+    (doseq [sector [:sector/industrial-waste-collection :sector/waste-disposal]]
+      (let [ids (set (map :exemption/id
+                          (:licence/exemptions (gate/licence "JPN" sector))))]
+        (is (contains? ids :kogata-kaden-nintei)
+            (str sector " に認定事業者の特例が無い"))
+        (is (contains? ids :kogata-kaden-jutaku)
+            (str sector " に13条3項（委託先）の特例が無い")))
+      (testing "特例は但書ではなく別法なので、条文が引けること"
+        (let [r (cat/rule "JPN" sector "jpn.kogata-kaden-13")]
+          (is (= :primary-source-read (:rule/verification r)))
+          (is (re-find #"許可を受けないで" (:rule/quote r)))
+          (is (re-find #"認定事業者の委託を受けて" (:rule/quote r))
+              "3項（自社が実行者のまま許可義務だけ外れる形）が引用に含まれること"))))))
+
+(deftest kogata-kaden-scope-is-not-overclaimed
+  (testing "対象機器は施行令1条の列挙で、柱書きの限定つき"
+    (let [r (cat/rule "JPN" :sector/industrial-waste-collection "jpn.kogata-kaden-rei-1")]
+      (is (re-find #"パーソナルコンピュータ" (:rule/quote r)))
+      (is (re-find #"一般消費者が通常生活の用に供する" (:rule/quote r))
+          "柱書きの限定を落として『PC は対象』とだけ読ませない")))
+  (testing "解釈が未確認であることが gap として名指しされている"
+    (doseq [sector [:sector/industrial-waste-collection :sector/waste-disposal]]
+      (let [gaps (:known-gaps (cat/entry "JPN" sector))]
+        (is (some #(re-find #"一般消費者が通常生活の用に供する" %) gaps))
+        (is (some #(re-find #"主務省令" %) gaps)
+            "認定基準を読んでいないことを申告していること")))))
+
+(deftest kogata-kaden-does-not-open-any-route-on-its-own
+  (testing "特例を収録しても verdict は動かない —— 認定を受けていない者には効かない"
+    (doseq [sector [:sector/industrial-waste-collection :sector/waste-disposal]]
+      (let [p (gate/plan {:jurisdiction "JPN" :sector sector :licence-held? false})]
+        (is (= :blocked (:route p))
+            (str sector " が認定なしで開いてしまっている"))))))
 
 (deftest summary-is-consistent-with-verdicts
   (let [s (gate/summary)]
