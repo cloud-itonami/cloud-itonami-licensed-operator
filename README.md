@@ -118,7 +118,7 @@ id を置くと `entry` が親（`"JPN"`）から継承して解決します。�
 ;; => {:inherited-from "JPN"
 ;;     :licence {:licence/law "廃棄物の処理及び清掃に関する法律 第14条第1項"  ; 国から
 ;;               :licence/authority "東京都知事（東京都環境局 資源循環推進部）" ; 都で上書き
-;;               :licence/fee-jpy 81000}                                      ; 都だけが持つ
+;;               :licence/fee-amount 81000 :licence/fee-currency "JPY"}       ; 都だけが持つ
 ;;     :rules [...国のルール2件...]}
 ```
 

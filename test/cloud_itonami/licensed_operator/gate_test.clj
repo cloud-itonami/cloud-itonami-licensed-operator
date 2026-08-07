@@ -350,7 +350,7 @@
   (testing "地方の層は国の層に上乗せする — 手数料は東京都の値、条文は国のもの"
     (let [e (cat/entry "JPN-13" :sector/industrial-waste-collection)]
       (is (= "JPN" (:inherited-from e)))
-      (is (= 81000 (get-in e [:licence :licence/fee-jpy])) "東京都の手数料")
+      (is (= 81000 (get-in e [:licence :licence/fee-amount])) "東京都の手数料")
       (is (re-find #"東京都" (get-in e [:licence :licence/authority])))
       (is (= "廃棄物の処理及び清掃に関する法律 第14条第1項" (get-in e [:licence :licence/law]))
           "国の法条は失われないこと")
@@ -358,7 +358,7 @@
           "国のルールを継承していること"))
     (testing "国の層には東京都固有の値が混ざっていないこと"
       (is (nil? (get-in (cat/raw-entry "JPN" :sector/industrial-waste-collection)
-                        [:licence :licence/fee-jpy]))
+                        [:licence :licence/fee-amount]))
           "81,000円は全国一律ではないので国の層に置かない"))
     (testing "gate も地方の法域を解決できる"
       (let [p (gate/plan {:jurisdiction "JPN-13" :sector :sector/industrial-waste-collection
