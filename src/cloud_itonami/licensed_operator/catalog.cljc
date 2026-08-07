@@ -355,7 +355,15 @@
      :licence/law "古物営業法第3条"
      :licence/authority "都道府県公安委員会"
      :licence/window "主たる営業所の所在地を管轄する警察署（防犯係）"
-     :licence/fee-jpy 19000
+     ;; **通貨を属性名に焼かない。** この catalog は 188 法域を持つのに、
+     ;; 手数料だけが JPY 前提だった —— kotoba-lang/kyoninka は同じ形の
+     ;; 属性を持っていて、**最初の非 JPN を収録した瞬間に破れた**
+     ;; （実測 2026-08-07、£191.02 は整数ですらなかった）。
+     ;; ここも壊れるのを待つ理由が無い。額は最小単位の整数
+     ;; （JPY は最小単位の端数を持たないので minor-unit は 1）。
+     :licence/fee-amount 19000
+     :licence/fee-currency "JPY"
+     :licence/fee-minor-unit 1
      :licence/obtainable-by-company? true
      :licence/kyoninka-procedure :kobutsu-marunouchi
      :licence/valid-years nil
@@ -1547,7 +1555,9 @@
     :sector :sector/industrial-waste-collection
     :licence
     {:licence/authority "東京都知事（東京都環境局 資源循環推進部）"
-     :licence/fee-jpy 81000
+     :licence/fee-amount 81000
+     :licence/fee-currency "JPY"
+     :licence/fee-minor-unit 1
      :licence/fee-basis "jpn.tokyo-sanpai-license-application"
      :licence/note
      (str "手数料 81,000 円（産業廃棄物・特別管理産業廃棄物とも、新規）は"

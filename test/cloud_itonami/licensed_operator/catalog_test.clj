@@ -156,8 +156,8 @@
       (is (seq (:licence/law l)))
       (is (contains? #{true false} (:licence/obtainable-by-company? l))
           (str jid "/" sector " の :licence/obtainable-by-company? が未指定"))
-      (when (:licence/fee-jpy l)
-        (is (pos-int? (:licence/fee-jpy l)))))))
+      (when (:licence/fee-amount l)
+        (is (pos-int? (:licence/fee-amount l)))))))
 
 (deftest coverage-is-reported-honestly
   (let [c (cat/coverage [["JPN" :sector/legal-services]
