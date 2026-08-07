@@ -1779,6 +1779,12 @@
     :licence
     {:licence/name "controlled waste carrier の登録"
      :licence/law "Control of Pollution (Amendment) Act 1989 s.1"
+     ;; 手続きの data は kotoba-lang/kyoninka の :gbr-waste-carrier。
+     ;; **sector が同じだからではなく、同一の免許を指していることを条文で
+     ;; 確かめてから繋いだ**（COPA(A) 1989 s.1 と Environment Agency（England）が両側で一致）。
+     ;; 結合はキーワードの厳密一致なので、法令名の表記揺れに影響されない
+     ;; —— 法令名を文字列で突き合わせる経路は実測で交差ゼロだった。
+     :licence/kyoninka-procedure :gbr-waste-carrier
      :licence/authority "Environment Agency（England）"
      :licence/obtainable-by-company? true
      :licence/exemptions
@@ -1846,6 +1852,12 @@
     :licence
     {:licence/name "scrap metal licence"
      :licence/law "Scrap Metal Dealers Act 2013 s.1"
+     ;; 手続きの data は kotoba-lang/kyoninka の :gbr-scrap-metal。
+     ;; **sector が同じだからではなく、同一の免許を指していることを条文で
+     ;; 確かめてから繋いだ**（SMDA 2013 s.1 と地方自治体（licensing authority）が両側で一致）。
+     ;; 結合はキーワードの厳密一致なので、法令名の表記揺れに影響されない
+     ;; —— 法令名を文字列で突き合わせる経路は実測で交差ゼロだった。
+     :licence/kyoninka-procedure :gbr-scrap-metal
      :licence/authority "地方自治体（licensing authority）"
      :licence/obtainable-by-company? true
      :licence/note
@@ -2092,6 +2104,12 @@
     :licence
     {:licence/name "Anzeige nach § 53 KrWG（危険廃棄物は § 54 の Erlaubnis）"
      :licence/law "Kreislaufwirtschaftsgesetz § 53 Abs. 1 / § 54 Abs. 1"
+     ;; 手続きの data は kotoba-lang/kyoninka の :deu-abfall-transport。
+     ;; **sector が同じだからではなく、同一の免許を指していることを条文で
+     ;; 確かめてから繋いだ**（KrWG §53 Abs.1 / §54 Abs.1 と州（Land）当局が両側で一致）。
+     ;; 結合はキーワードの厳密一致なので、法令名の表記揺れに影響されない
+     ;; —— 法令名を文字列で突き合わせる経路は実測で交差ゼロだった。
+     :licence/kyoninka-procedure :deu-abfall-transport
      :licence/authority "Behörde des Landes, in dem der Anzeigende seinen Hauptsitz hat"
      :licence/obtainable-by-company? true
      :licence/regime :prior-authorisation
