@@ -1,5 +1,5 @@
 (ns cloud-itonami.licensed-operator.gate-test
-  (:require [clojure.string]
+  (:require [kotoba.lang.text]
             [clojure.test :refer [deftest is testing]]
             [cloud-itonami.licensed-operator.catalog :as cat]
             [cloud-itonami.licensed-operator.gate :as gate]))
@@ -328,7 +328,7 @@
     (let [r (cat/rule "JPN" :sector/alcohol-manufacture "jpn.shuzei-ho-7")]
       (is (= :primary-source-read (:rule/verification r)))
       (is (re-find #"見込数量が当該酒類につき次に定める数量に達しない場合には、\s*受けることができない"
-                   (clojure.string/replace (:rule/quote r) #"\s+" ""))
+                   (kotoba.lang.text/replace (:rule/quote r) #"\s+" ""))
           "最低製造数量の要件が引用されていること"))
     (is (re-find #"最低製造数量"
                  (:condition (gate/verdict-for "JPN" :sector/alcohol-manufacture :route/principal))))))
@@ -438,7 +438,7 @@
           r54 (cat/rule "DEU" :sector/industrial-waste-collection "deu.krwg-54")]
       (is (re-find #"anzuzeigen" (:rule/quote r53)) "非危険は届出")
       (is (re-find #"gefährlichen Abfällen.*bedürfen der \*\*Erlaubnis\*\*"
-                   (clojure.string/replace (:rule/quote r54) #"\s+" " "))
+                   (kotoba.lang.text/replace (:rule/quote r54) #"\s+" " "))
           "危険は許可"))
     (testing "Händler と Makler まで名宛人なので取次ぎ層も捕捉されうる"
       (is (re-find #"Händler und Makler"

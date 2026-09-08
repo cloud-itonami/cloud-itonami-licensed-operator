@@ -12,7 +12,7 @@
   日付は `\"YYYY-MM-DD\"` 文字列で扱い辞書順比較する。`Date`/`js/Date`
   を使わないので `.cljc` のまま JVM / ClojureScript / WASM で同じ結果に
   なる。"
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 ;; ---------------------------------------------------------------------------
 ;; Records
