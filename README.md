@@ -10,7 +10,7 @@ StateGraph も台帳も持たない。何も申請せず、許認可も持たず
 **consumer**: `cloud-itonami-isic-6910-legalsupport`（`licensee/verify` に
 reviewer 検査を委譲。抽出元でもある）。
 
-**76 tests / 1,151 assertions green** (`clojure -M:test`)、`clojure -M:lint` clean。
+**76 tests / 1,151 assertions green** (`kbb -M:test`)、`kbb -M:lint` clean。
 
 ## なぜ要るか
 
@@ -226,8 +226,8 @@ curl で取得して抽出**）。フランスは Légifrance が curl を 403 �
 ## 使い方
 
 ```bash
-clojure -M:test   # 76 tests / 1,151 assertions
-clojure -M:lint   # clj-kondo, errors fail
+kbb -M:test   # 76 tests / 1,151 assertions
+kbb -M:lint   # clj-kondo, errors fail
 ```
 
 ```clojure
