@@ -1,5 +1,5 @@
 (ns cloud-itonami.licensed-operator.licensee-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [cloud-itonami.licensed-operator.licensee :as lic]))
 
 (def ^:private holder
