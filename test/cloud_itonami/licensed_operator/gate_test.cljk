@@ -1,6 +1,6 @@
 (ns cloud-itonami.licensed-operator.gate-test
   (:require [kotoba.lang.text]
-            [clojure.test :refer [deftest is testing]]
+            [kotoba.test :refer [deftest is testing]]
             [cloud-itonami.licensed-operator.catalog :as cat]
             [cloud-itonami.licensed-operator.gate :as gate]))
 
